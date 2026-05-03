@@ -1,0 +1,22 @@
+// 订单号
+.icon-order-no::before {
+	content: '';
+	background: url(../../../static/icons/order_num.png) no-repeat center;
+	background-size: contain;
+	width: 0.4rem;
+	height: 0.4rem;
+	display: inline-block;
+	vertical-align: middle;
+	margin-right: 0.1rem;
+}
+// 客服电话
+.icon-phone::before {
+	content: '';
+	background: url(../../../static/icons/service_tel.png) no-repeat center;
+	background-size: contain;
+	width: 0.4rem;
+	height: 0.4rem;
+	display: inline-block;
+	vertical-align: middle;
+	margin-right: 0.1rem;
+}

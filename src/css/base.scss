@@ -1,0 +1,474 @@
+
+// #GEAR_AREA 被aerapicker占用，平时不可使用
+
+@import './color.scss';
+@import './size.scss';
+
+//设备宽度
+$device-width: 750;
+
+// 像素转rem
+@function rem($pixels) {
+    @return (($pixels * 10rem) / $device-width );
+}
+/*color part*/
+//background-color
+.bg-gray {  background-color: $bg-gray }
+.bg-gray-e { background-color: $bg-gray-e }
+.bg-dgray {  background-color: $line-gray }
+.bg-theme { background-color: $theme-color }
+.bg-white { background-color: $bg-white }
+.bg-red {background-color: $bg-red }
+// 分割线颜色
+//$line-gray: #e5e7e9;
+
+// 字体颜色
+.fcolor { color: $fcolor; }
+.fcolor-gray { color: $fcolor-gray }
+.fcolor-9b { color: $fcolor-9b }
+.fcolor-dgray { color: $fcolor-dgray }
+.fcolor-red { color: $fcolor-red }
+.fcolor-white { color: white }
+
+// palceholder灰色设置
+@mixin placeholder-gray{
+	&::-webkit-input-placeholder { /* WebKit, Blink, Edge */
+    color: $fcolor-gray;
+	}
+	&::-moz-placeholder { /* Mozilla Firefox 4 to 18 */
+	   color: $fcolor-gray;
+	   opacity:  1;
+	}
+	&::-moz-placeholder { /* Mozilla Firefox 19+ */
+	   color: $fcolor-gray;
+	   opacity:  1;
+	}
+	&::-ms-input-placeholder { /* Internet Explorer 10-11 */
+	   color: $fcolor-gray;
+	}
+}
+//主题颜色
+.fcolor-theme { color: $theme-color }
+
+
+//设备宽度
+$device-width: 750;
+
+/*font part*/
+//font-size
+@mixin fsize($size) {
+	//文字大小设置这个位置的大小
+	font-size: $size;//(($size * 10rem) / $device-width );
+}
+//导航部分标题大小
+.ftitle {
+	@include fsize(33);
+	color: $fcolor;
+}
+.f52 {
+	@include fsize(52);
+}
+.ftext-l {
+	@include fsize(34);
+}
+.ftext-ml {
+	@include fsize(32);
+}	
+.fnum-m {
+	@include fsize(30);
+}
+.ftext-m {
+	@include fsize(28);
+}
+.ftext-ms {
+	@include fsize(26);
+}
+.ftext-s {
+	@include fsize(24);
+}
+.ftext-ss {
+	@include fsize(20);
+}
+
+/*文字加粗*/
+.fbold {
+	font-weight: bolder;
+}
+/*文字带划掉*/
+.fdel {
+	text-decoration: line-through;
+}
+/*超出省略*/
+.fellip {
+	text-overflow: ellipsis;
+	white-space: nowrap; 
+	word-break: break-all;
+	overflow: hidden; 
+}
+.fellip2 {
+	line-height: 1.5em;
+	height: 3em;
+	text-overflow: ellipsis;
+	overflow: hidden; 
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-moz-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	-moz-box-orient: vertical;
+	word-wrap: normal;
+  	word-break: break-all;
+}
+// 左浮动
+.fl {
+	float: left;
+}
+// 右浮动
+.fr {
+	float: right;
+}
+/*清浮动*/
+.clearfl:after {
+	content: "";
+	display: block;
+	clear: both;
+}
+
+@mixin display_flex {
+	display: -webkit-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+}
+
+@mixin flex_wrap {
+	flex-wrap: wrap;
+	-webkit-flex-wrap: wrap;
+}
+
+@mixin justify_content_between {
+	-webkit-justify-content: space-between;
+    justify-content: space-between;
+}
+
+@mixin justify_content_end {
+	justify-content: flex-end;
+	-webkit-justify-content: flex-end;
+}
+@mixin justify_content_center {
+  -webkit-justify-content: center;
+  justify-content: center;
+}
+@mixin justify_content_around {
+  -webkit-justify-content: space-around;
+  justify-content: space-around;
+}
+
+@mixin align_items_center {
+	align-items: center;
+	-webkit-align-items: center;
+}
+
+//mixin
+@mixin whp($width, $height, $tpadding, $rpadding, $bpadding, $lpadding) {
+	width: $width - $rpadding - $lpadding;
+	height: $height - $tpadding - $bpadding;
+	padding: $tpadding $rpadding $bpadding $lpadding;
+}
+
+// 圆角混合
+@mixin border-radius( $radius ){
+	-webkit-border-radius: $radius;
+	-moz-border-radius: $radius;
+	-ms-border-radius: $radius;
+	-o-border-radius: $radius;
+	border-radius: $radius;
+}
+
+/*封装一个混合， 看需求大不大，如果大的话放入公共的文件中*/
+// 需要改变宽度的话，宽度必须放在@include lrlist的下面
+@mixin lrlist($height, $padding:$lrpadding) {
+	width: 100%;
+	height: $height;
+	padding: $padding;
+	box-sizing: border-box;
+	@include display_flex;
+	@include justify_content_between;
+	@include align_items_center;
+	/*这里有颜色*/
+	background-color: $bg-white;
+}
+
+@mixin llist($height, $padding:$lrpadding) {
+	height: $height;
+	padding: $padding;
+	box-sizing: border-box;
+	/*这里有颜色*/
+	background-color: $bg-white;
+}
+@mixin rlist($height, $padding...) {
+	height: $height;
+	padding: $padding;
+	box-sizing: border-box;
+	/*这里有颜色*/
+	background-color: $bg-white;
+	@include display_flex;
+	@include justify_content_end;
+	@include align_items_center;
+}
+
+/* 居中对齐 其中不包含背景颜色 */
+/* 如果父级设置了绝对定位则必须设置宽度 */
+@mixin mlist($height, $padding...) {
+	width: 10rem;
+	height: $height;
+	padding: $padding;
+	box-sizing: border-box;
+	@include display_flex;
+	@include justify_content_center;;
+	@include align_items_center;
+}
+// 按钮部分
+// 实心按钮
+@mixin check-btn ($width, $height, $radius, $color:$theme-color) {
+	width: $width;
+	height: $height;
+	// border-radius: $radius;
+	background-color: $color;
+	color: white;
+	@include border-radius($radius);
+}
+// 线按钮
+@mixin line-btn ($width, $height, $radius, $color) {
+	min-width: $width;
+	height: $height;
+	border: 1px solid $color;
+	color: $color;
+	@include border-radius($radius);
+}
+// 无边框按钮
+@mixin none-btn ($width, $height, $color) {
+	width: $width;
+	height: $height;
+	color: $color;
+}
+// 无效按钮
+@mixin disable-btn ($width, $height, $radius) {
+	min-width: $width;
+	height: $height;
+	color: #9E9E9E;
+	background: #eee;
+	@include border-radius($radius);
+
+}
+
+// 单选按钮样式
+
+// <label class="radio-button" >
+// 	<input type="radio" name="invoice-head" value="">
+// 	<span>个人</span>
+// </label>
+
+@mixin radio-btn ($width, $height, $radius, $color, $activecolor: $theme-color, $padding : $radio-btn-defaultpadding) {
+	// margin-right: 0.208333rem;
+	float: left;
+	input[type = radio] {
+		display: none;
+	}
+	span {
+		border: 1px solid $color;
+		min-width: $width;
+		height: $height;
+		// @include border-radius(0 50%);
+		padding: $padding;
+		display: inline-block;
+		@include border-radius( $radius );
+		color: $color;
+		@include display_flex;
+		@include justify_content_center;;
+		@include align_items_center;
+		box-sizing: border-box;
+	}
+	&:checked + span {
+		border: 1px solid $activecolor;
+		color: $activecolor;
+	}
+}
+// radio选择框 小
+@mixin radio-btn-small {
+	@include display_flex;
+	@include align_items_center;
+	float: left;
+	input[type = radio] {
+		display: none;
+		& + span {
+			border: 1px solid $line-gray;
+			width: 0.4rem;
+			height: 0.4rem;
+			display: inline-block;
+			margin-right: 0.2rem;
+		}
+		&:checked + span {
+			border: 1px solid $theme-color;
+			background: url(../img/ic_zhifu_press@3x.png) no-repeat center;
+			background-size: 120%;
+		}
+		.text {
+			float: left;
+			margin-left: 0.266667rem;
+		}
+	}
+}
+@mixin radio-btn-solid ($width, $height, $radius, $bg-color: $bg-gray, $activecolor: $theme-color, $padding : $radio-btn-defaultpadding ) {
+	// margin-right: 0.208333rem;
+	float: left;
+	input[type = radio] {
+		display: none;
+		& + span {
+			// border: 1px solid $color;
+			background-color: $bg-color;
+			width: $width;
+			height: $height;
+			padding: $padding;
+			//display: inline-block;
+			@include border-radius( $radius );
+			// color: $color;
+			@include display_flex;
+			@include justify_content_center;;
+			@include align_items_center;
+			box-sizing: border-box;
+		}
+		&:checked + span {
+			border: 1px solid $activecolor;
+			color: white;
+			background-color: $activecolor
+		}
+		&:disabled + span {
+			border: 1px solid $bg-gray;
+			background-color: $bg-gray;
+			color: $fcolor-gray;
+		}
+	}
+}
+@mixin radio-btn-line ($width, $height, $radius, $bg-color: $bg-gray, $activecolor: $theme-color, $padding : $radio-btn-defaultpadding ) {
+	// margin-right: 0.208333rem;
+	float: left;
+	input[type = radio] {
+		display: none;
+		& + span {
+			border: 1px solid $activecolor;
+			// background-color: $bg-color;
+			width: $width;
+			height: $height;
+			padding: $padding;
+			// display: inline-block;
+			@include border-radius( $radius );
+			// color: $color;
+			@include display_flex;
+			@include justify_content_center;;
+			
+			box-sizing: border-box;
+		}
+		&:checked + span {
+			border: 1px solid $activecolor;
+			// color: white;
+			// background-color: $activecolor
+		}
+		&:disabled + span {
+			border: 1px solid $bg-gray;
+			background-color: $bg-gray;
+			color: $fcolor-gray;
+		}
+	}
+}
+// 底部横线部分
+@mixin line-bottom {
+	border-bottom: 1px solid $line-gray;
+}
+@mixin margin-bottom {
+	margin-bottom: $marginBottom;
+}
+// 右箭头 当需要背景颜色为白色时，这个在前面用，然后再用lrlist...
+@mixin arrow {
+	background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABMAAAAgCAYAAADwvkPPAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyFpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuNS1jMDE0IDc5LjE1MTQ4MSwgMjAxMy8wMy8xMy0xMjowOToxNSAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENDIChXaW5kb3dzKSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDo1NkFEMDVDREIxQjcxMUU0QTRDOEI2QzhGRTQyOEQ5OCIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDo1NkFEMDVDRUIxQjcxMUU0QTRDOEI2QzhGRTQyOEQ5OCI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOjU2QUQwNUNCQjFCNzExRTRBNEM4QjZDOEZFNDI4RDk4IiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjU2QUQwNUNDQjFCNzExRTRBNEM4QjZDOEZFNDI4RDk4Ii8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+HcRu+AAAAMZJREFUeNqs1sENgzAMBVDz6WDZowc6WA9w6BzJYlXaUBdBG8Cx/aVcQDwcG6R0McaeiG70yRhCeJIyYOjOa0op9RZsnasFLNj4Xg8PENyjwQOct+kFLj3zADcDsIK/0zSBqF3Ugti7oQFxVHYriLOmtoCQjFwKQvpBSsAu59z0//GDE0PflBcMIMfAq6rSBnhB4sokkAiTQqdYC3SItUK7mAaqYlroD7NAG8wKLZgHNGNe0PqsYYZq01RDJRc+a5DHkeolwADN0av3Y1+XBQAAAABJRU5ErkJggg==);
+	background-repeat: no-repeat;
+	background-position: center right;
+  	background-size: 0.2rem 0.32rem;
+}
+
+.arrow {
+	@include arrow;
+}
+// 栏目直接的间隔
+.mb {
+	@include margin-bottom;
+}
+// 积分显示
+.point-icon {
+	width: 0.4rem;
+	height: 0.4rem;
+	margin: 0 0.1rem 0 0;
+}
+.main-content {
+	width: 10rem;
+	box-sizing: border-box;
+	margin: 0 auto;
+	overflow-x:hidden; 
+}
+.fixed-top-wrap {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	z-index: 10;
+}
+.fixed-bottom-wrap {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	z-index: 10;
+	background:rgba(255,255,255,1);
+}
+.mark-bg{
+	width:100%; height:100%; position: absolute; left:0; top:0; bottom:0;
+	background: rgba(0,0,0,0.48);
+  }
+
+  .max-line {
+  	word-break: break-all;
+  	text-overflow: -o-ellipsis-lastline;
+  	overflow: hidden;
+  	text-overflow: ellipsis;
+  	display: -webkit-box;
+  	-webkit-box-orient: vertical;
+  }
+
+  .max-1-line {
+  	-webkit-line-clamp: 1;
+  }
+
+  .max-2-line {
+  	-webkit-line-clamp: 2;
+  }
+
+  .max-3-line {
+  	-webkit-line-clamp: 3;
+  }
+
+  .max-4-line {
+  	-webkit-line-clamp: 4;
+  }
+  .van-badge--fixed {
+	top:.1rem;
+	font-size: 0.26rem;
+  }
+  :root {
+  --van-uploader-size: 4rem;
+  --van-padding-xs: 0.4rem;
+  --van-uploader-icon-size: 1rem;
+  --van-uploader-icon-color:#999;
+  --van-dropdown-menu-background: transparent;
+  --van-dropdown-menu-shadow: none;
+
+
+}

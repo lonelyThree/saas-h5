@@ -1,0 +1,25 @@
+.van-steps {
+    background-color: #F8F9F9;
+}
+
+.van-steps--vertical {
+    padding-left: 0.94rem;
+}
+
+.van-step--vertical {
+    .van-step__circle-container {
+        width: 0.4rem;
+        height: 0.4rem;
+        background: #F8F9F9;
+        border: 1px solid #1B302D;
+        border-radius: 50%;
+        left: -0.47rem;
+        font-size: 0;
+    }
+
+    .van-step__line {
+        background: #1B302D;
+        left: -0.47rem;
+    }
+
+}

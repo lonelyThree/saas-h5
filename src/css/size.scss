@@ -1,0 +1,42 @@
+
+// 底部按钮padding高度
+$footButtonPadding: 0.2133rem;
+// 底部按钮内容高度
+$footButtonContentHeight: 1.28rem;
+// 底部按钮总高度
+$footButtonHeight: $footButtonContentHeight + (2 * $footButtonPadding);
+
+// 单行高度
+$singleLineHeight: 1.333333rem;
+// 导航header的高度
+$navHeaderHeight: 1.388889rem;
+//屏幕左右padding
+$lrpadding: 0 0.533333rem; 
+
+//顶部搜索框高度
+$search-height: 1.2rem;
+
+/* 底部功能区域高度 */
+$functions-footer-height: 1.2rem;
+
+// 单选框默认padding
+$radio-btn-defaultpadding: 0.138889rem 0.277778rem;
+
+// 小按钮 check-btn
+$check-btn-width: 2rem;
+$check-btn-height: 0.666667rem;
+
+// 单行右侧content宽度
+$singleLineContentWidth: 6.9rem;
+// 单行左侧title宽度
+$singleLineTitleWidth: 2rem;
+// 每个部分分割margin
+$marginBottom: 0.25rem;
+// 底部tab导航栏高度
+$footerTabsHeight: 1.35rem;
+
+//单选框字体大小
+$icon-radio: 0.5rem;
+
+// 导航栏高度
+$tab-bar: 1.2rem;
