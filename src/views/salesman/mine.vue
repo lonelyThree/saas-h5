@@ -132,7 +132,7 @@ function getUserInfo() {
             const d = response.data.data
             
             if(d.status != 3 && d.status != 4 && d.status != 5) {
-                router.replace({name: 'SalesmamReg', query:{'aid':aid}})
+                router.replace({name: 'SalesmanReg', query:{'aid':aid}})
                 return
             }
             

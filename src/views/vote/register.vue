@@ -1,8 +1,8 @@
 <template>
     <div class="main-content vote-reg">
-        <div v-if="regVoteInfo.name_type == 1 || regVoteInfo.name_type == 2">
+        <!-- <div v-if="regVoteInfo.name_type == 1 || regVoteInfo.name_type == 2"> -->
             <!-- 案例名称 -->
-            <van-cell-group >
+            <!-- <van-cell-group >
                 <van-field v-model="voteInfo.name" label="案例名称" placeholder="请输入内容">
                     <template #right-icon>
                         <span class="field-tip required">{{ regVoteInfo.name_type == 1 ? '必填' : '选填' }}/公开</span>
@@ -10,10 +10,10 @@
                 </van-field>
             </van-cell-group>
         </div>
-        <div v-if="regVoteInfo.info_type == 1 || regVoteInfo.info_type == 2">
+        <div v-if="regVoteInfo.info_type == 1 || regVoteInfo.info_type == 2"> -->
 
             <!-- 案例描述 -->
-            <van-cell-group>
+            <!-- <van-cell-group>
                 <van-cell title="案例说明">
                     <template #right-icon>
                         <span class="field-tip required">{{ regVoteInfo.info_type == 1 ? '必填' : '选填' }}/公开</span>
@@ -24,10 +24,10 @@
             </van-cell-group>
 
         </div>
-        <div v-if="regVoteInfo.img_type == 1 || regVoteInfo.img_type == 2">
+        <div v-if="regVoteInfo.img_type == 1 || regVoteInfo.img_type == 2"> -->
 
             <!-- 上传图片 -->
-            <van-cell-group>
+            <!-- <van-cell-group>
                 <van-cell title="案例图片">
                     <template #right-icon>
                         <span class="field-tip required">{{ regVoteInfo.img_type == 1 ? '必填' : '选填' }}//公开</span>
@@ -44,7 +44,7 @@
                     </van-uploader>
                 </div>
             </van-cell-group>
-        </div>
+        </div> -->
 
         <div v-for="item in regList" :key="item.id">
 
@@ -66,7 +66,7 @@
                             1 ? '公开' : '不公开'}}</span>
                     </template>
                 </van-cell>
-                <van-field v-model="item.answer" label="" type="textarea" rows="4" autosize placeholder="请输入内容，不限数字">
+                <van-field v-model="item.answer" label="" type="textarea" rows="4" autosize placeholder="请输入内容">
                 </van-field>
             </van-cell-group>
 
@@ -189,6 +189,7 @@ import { uploadToOSS } from '../../js/utils/ossUpload'
 
 import { useRouter } from 'vue-router'
 import { showToast, setToastDefaultOptions } from "vant";
+import { setQrSession, getQrSession } from '@/js/utils/qrSession';
 
 const { currentRoute } = useRouter();
 const route = currentRoute.value;
@@ -293,18 +294,18 @@ const afterReadVideo = async (file) => {
 
 // 绑定手机号确定按钮
 function submitInfo() {
-    if (regVoteInfo.value.name_type == 1 && !voteInfo.value.name) {
-        showToast('请填写案例名称')
-        return
-    }
-    if (regVoteInfo.value.info_type == 1 && !voteInfo.value.info) {
-        showToast('案例说明')
-        return
-    }
-    if (regVoteInfo.value.img_type == 1 && !voteInfo.value.imgs.length) {
-        showToast('请上传案例图片')
-        return
-    }
+    // if (regVoteInfo.value.name_type == 1 && !voteInfo.value.name) {
+    //     showToast('请填写案例名称')
+    //     return
+    // }
+    // if (regVoteInfo.value.info_type == 1 && !voteInfo.value.info) {
+    //     showToast('案例说明')
+    //     return
+    // }
+    // if (regVoteInfo.value.img_type == 1 && !voteInfo.value.imgs.length) {
+    //     showToast('请上传案例图片')
+    //     return
+    // }
     let submitValue = {}
     // regList.value.forEach(item => {
     //     console.log('item', item)
@@ -362,7 +363,16 @@ function submitInfo() {
                 return false;
             }
             if (item.answer && item.answer.length > 0) {
-                const urls = item.answer.filter(file => file.url).map(file => file.url);
+                let urls = []
+                for (let j = 0; j < item.answer.length; j++) {
+                    const file = item.answer[j];
+                    if (file.url) {
+                        urls.push(file.url)
+                    } else {
+                        showToast("请等待图片上传完：" + item.title);
+                        return false;
+                    }
+                }
                 submitValue[item.id] = urls
             }
         } else if (item.type == 6) { // 视频上传
@@ -439,12 +449,20 @@ function submitInfo() {
     // }
 
 
+    let ctid = getQrSession({
+    bindType: 'vote', 
+    activityId: aid.value, 
+    appKey: proxy.$config.appKey
+})?.inviteCode || ''
+
+
 
     proxy.$axios.post(proxy.$config.domain + "Vote/TopicSave", {
         type: aType.value,
         id: aid.value,
-        vote_info: voteInfo.value,
+        // vote_info: voteInfo.value,
         answers: submitValue,
+        ctid: ctid,
     }, { toJSON: true }).then(response => {
         // this.showLoading = false;
         if (response.data.code === 200) {
@@ -507,7 +525,14 @@ onMounted(() => {
     if (ctype && ctype == '2') {
         aType.value = 2
     }
-    console.log('ctype', ctype, aType.value);
+    // console.log('ctype', ctype, aType.value);
+
+    let ctid = route.query.ctid
+    if (ctid && typeof ctid === 'string') {
+        // 在任何页面获取到邀请码时
+        setQrSession(ctid, 'vote', aid.value, proxy.$config.appKey);
+
+    }
 
     getRegInfo()
 

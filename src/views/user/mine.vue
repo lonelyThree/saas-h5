@@ -105,13 +105,13 @@
                 </div>
                 <van-icon name="arrow" color="#1E2633" size="0.32rem"/>
             </div> -->
-            <div class="more-cell" flex="dir:left cross:center  main:justify" @click="goCustomerClick">
+            <!-- <div class="more-cell" flex="dir:left cross:center  main:justify" @click="goCustomerClick">
                 <div class="more-cell-item">
                     <img src="../../assets/img/mine/invite-icon.png">
                     领取红包
                 </div>
                 <van-icon name="arrow" color="#1E2633" size="0.32rem"/>
-            </div>
+            </div> -->
 
             <!-- <div class="more-cell" flex="dir:left cross:center  main:justify" @click="goQuestionClick">
                 <div class="more-cell-item">
@@ -284,7 +284,7 @@ function goEditClick() {
 }
 
 function goRecordClick() {
-    gotoUrl('UserActivityRecord', {page: 'UserMine'})
+    gotoUrl('UserAwardRecord', {page: 'UserMine'})
 }
 
 function goCreditClick() {

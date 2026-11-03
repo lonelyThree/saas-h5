@@ -1,7 +1,7 @@
 // 获取微信配置签名
 const getWxConfig = async (vm, url) => {
   try {
-    const { data } = await vm.$axios.get(vm.$config.domain+  '/User/GetTicketSign?url='+ encodeURIComponent(url))
+    const { data } = await vm.$axios.get(vm.$config.domain+  'User/GetTicketSign?url='+ encodeURIComponent(url))
     return data.data
   } catch (error) {
     console.error('获取微信签名失败', error)
@@ -54,3 +54,4 @@ export const setShareConfig = (options) => {
     })
   })
 }
+

@@ -60,6 +60,8 @@ import { showToast, setToastDefaultOptions, showLoadingToast, closeToast, showDi
 
 import DPlayer from 'dplayer';
 import { activityInfoStatus } from '@/constants/ActivityInfoStatus'
+import { setQrSession, getQrSession } from '@/js/utils/qrSession';
+
 
 const { currentRoute } = useRouter();
 const route = currentRoute.value;
@@ -126,10 +128,17 @@ function SetRemainTime() {
 }
 
 function startClick() {
+    
     if (showType.value == 1) {
         dplay.play()
     } else if (showType.value == 3){
-        proxy.$axios.post(proxy.$config.domain + 'Activity/WatchVideoInit', {id: aid } ).then(response => {
+         let ctid = getQrSession({
+    bindType: 'watchVideo', 
+    activityId: aid, 
+    appKey: proxy.$config.appKey
+})?.inviteCode || ''
+        proxy.$axios.post(proxy.$config.domain + 'Activity/WatchVideoInit', {id: aid, 
+        ctid: ctid } ).then(response => {
             if (response.data.code === 200 || response.data.msg == '保存失败') {
                 jumpAnswer()
 
@@ -282,6 +291,13 @@ onMounted(() => {
         GetGeo()
     } else {
         getActivity('')
+    }
+
+    let ctid = route.query.ctid
+    if (ctid && typeof ctid === 'string') {
+        // 在任何页面获取到邀请码时
+        setQrSession(ctid, 'watchVideo', aid, proxy.$config.appKey);
+
     }
 
 })

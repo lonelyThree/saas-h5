@@ -349,8 +349,12 @@ function getJsTicket() {
 }
 
 function getActivity(adcode) {
+
+     let ctid = route.query.ctid || ''
  
-    proxy.$axios.get(proxy.$config.domain + 'Article/Info?id=' + aid + '&uuid='+uid+'&adcode=' + adcode).then(response => {
+    proxy.$axios.get(proxy.$config.domain + 'Article/Info?id=' + aid + '&uuid='+uid+'&adcode=' + adcode +
+        '&ctid=' + ctid
+    ).then(response => {
         // console.log(response)
         if (response.data.code === 200) {
             const d = response.data.data

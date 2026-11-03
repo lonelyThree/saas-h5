@@ -156,6 +156,7 @@ function getJsTicket() {
     });
 }
 
+
 onMounted(() => {
     let channel_name = route.query.channel_name
     if(channel_name && typeof channel_name === 'string' && channel_name == 'weapp') {

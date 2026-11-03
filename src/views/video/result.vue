@@ -4,7 +4,7 @@
             <div class="topic-bg" flex="dir:left cross:center">
                 <div class="topic-num">
                     <div>很不错哦！</div>
-                    <span>恭喜您将获得本次活动{{ result.award_type == 2 ? '积分' : (result.award_type == 3 ? '星币' : '元红包') }}</span>
+                    <span>恭喜您将获得本次活动奖励</span>
                 </div>
                 <img src="../../assets/img/award-img.png" />
             </div>
@@ -38,7 +38,7 @@
             <div class="topic-bg" flex="dir:left cross:center">
                 <div class="topic-num">
                     <div>很遗憾</div>
-                    <span>没有达标，无法领取红包</span>
+                    <span>没有达标，无法领取奖励</span>
                 </div>
                 <img src="../../assets/img/award-no-img.png" />
             </div>
@@ -50,7 +50,7 @@
                         答对<div><span>{{ result.correctNum }}</span>/{{ result.cnt }}</div>题
                     </div>
                     <img src="../../assets/img/red-big-no-img.png">
-                    <div class="tip-div">答对{{ result.standardNum }}题才能领取红包哦</div>
+                    <div class="tip-div">答对{{ result.standardNum }}题才能领取奖励哦</div>
                     <div class="award-btn " @click="reAnswer">重新答题（{{ result.failNum }}/{{ result.joinNum }}）</div>
                 </div>
 

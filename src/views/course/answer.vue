@@ -1,11 +1,16 @@
 <template>
     <div class="main-content course-answer">
-        <div class="topic-num">
-            <span> {{ topicType == 2 ? '多选题' : (topicType == 3 ? '判断题' : '单选题') }}</span>
+        
+
+        <div class="topic-num"  flex="dir:left cross:center">
+            <div class="topic-num-index"><span> {{ topicType == 2 ? '多选题' : (topicType == 3 ? '判断题' : '单选题') }}</span>
             {{ askIndex }}/{{ askSum }}
+            </div>
+
+             <div class="topic-time" v-show="showTimer"><van-count-down :time="time" format=" HH:mm:ss  "  @change="onCountDownChange"  @finish="onFinish"  ref="countDownRef"/></div>
         </div>
         <div class="progress-div">
-            <van-progress :percentage="50" pivot-color="#4196E4" :show-pivot="false" />
+            <van-progress :percentage="askIndex * 100 / askSum" pivot-color="#4196E4" :show-pivot="false" />
         </div>
         <div class="topic-name">
             {{ askName }}
@@ -24,7 +29,7 @@
                 </div>
             </div>
         </div>
-        <div class="answer-btn" @click="answerMulClick()" v-if="result.status != 2 && result.status != 3">
+        <div class="answer-btn" @click="answerMulClick()" v-if="result.status != 2 && result.status != 3 && result.status != 4">
             确认答案
         </div>
 
@@ -56,27 +61,34 @@
                 上一题
             </div>
         </div>
+        <van-popup v-model:show="showNoStartPop" class="red-packet-pop" :close-on-click-overlay="false">
+            <img :src="noStartImg" />
+        </van-popup>
     </div>
 </template>
 
 
 <script lang="ts" setup>
 
-import { onMounted, onBeforeUnmount, ref, getCurrentInstance } from "vue"
+import { onMounted, onBeforeUnmount, ref, getCurrentInstance, nextTick } from "vue"
 
 import { showDialog, showToast } from "vant";
 
 import { useRouter } from 'vue-router'
-import func from "vue-temp/vue-editor-bridge";
+import { activityInfoStatus } from '@/constants/ActivityInfoStatus'
+import { getQrSession } from '@/js/utils/qrSession';
 
 const { currentRoute } = useRouter();
 const route = currentRoute.value;
 const router = useRouter()
 
+const showNoStartPop=ref(false)
+const noStartImg = ref('')
+
 const { proxy } = getCurrentInstance()
 
-
-
+const DEFAULT_TIME = 24 * 60 * 60 * 1000
+const time = ref(DEFAULT_TIME);
 const down = ref(10)
 const askIndex = ref(0)
 const askSum = ref(30)
@@ -96,6 +108,8 @@ let logId = ""
 
 let downTimeout = 30
 
+const remainingTime = ref(0)
+
 
 const askList = ref(
     [{
@@ -107,17 +121,26 @@ const askList = ref(
     ]
 );
 
-let aid = ""
+const aid = ref('')
 
 
 
 let lockClick = false
+const countDownRef = ref(null);
+const showTimer = ref(false)
+const isLoading = ref(false)
+
+function onCountDownChange(currentTime) {
+    if (showTimer.value) {
+        remainingTime.value = currentTime.total
+    }
+}
 
 
 
 function answerClick(item) {
 
-    if (lockClick) {
+    if (lockClick || isLoading.value) {
         return
     }
     // 多选
@@ -140,7 +163,7 @@ function answerClick(item) {
 
 
 function answerMulClick() {
-    if (lockClick) {
+    if (lockClick || isLoading.value) {
         return
     }
 
@@ -159,14 +182,22 @@ function answerMulClick() {
     answer = answer.substring(1)
 
     lockClick = true
+    isLoading.value = true
+    const duration = Math.floor((time.value - remainingTime.value) / 1000)
+    remainingTime.value = 0
+    showTimer.value = false
 
 
-    answerActivity(answer, 1)
+    answerActivity(answer, duration)
 }
 
 function upClick() {
-    if(askIndex.value <= 1) {
+    if(askIndex.value <= 1 || isLoading.value) {
         return
+    }
+    // 上一题隐藏倒计时， 如果倒计时存在， 把倒计时保存起来，等下一题的时候继续倒计时
+    if (showTimer.value) {
+        showTimer.value = false
     }
     switchClick(2)
 }
@@ -177,26 +208,37 @@ function downClick() {
         return
 
     }
+    if(isLoading.value) {
+        return
+    }
     switchClick(1)
 }
 
+function handleApiError(message = '网络连接错误，请刷新重试') {
+    showDialog({
+        message: message,
+    }).then(() => {
+        router.replace({ name: 'CourseQuestion', query: { id: aid.value, type: route.query.type } })
+    });
+}
+
 function switchClick(page_type) {
+    isLoading.value = true
     proxy.$axios.post(proxy.$config.domain + 'Course/QuestionTopicSwitch', {
-        aid: aid,
+        aid: aid.value,
         topic_log_id: topicLogId,
         log_id: logId,
         page_type: page_type,
     }, { toJSON: true }).then(response => {
-        console.log(response)
         if (response.data.code === 200) {
             const d = response.data.data
 
             if (d.status == 2) {
-                router.replace({ name: 'CourseResult', query: { id: aid, type: route.query.type } })
+                router.replace({ name: 'CourseResult', query: { id: aid.value, type: route.query.type } })
                 return
             }
             if (d.status != 1) {
-                router.replace({ name: 'CourseQuestion', query: { id: aid, type: route.query.type } })
+                router.replace({ name: 'CourseQuestion', query: { id: aid.value, type: route.query.type } })
                 return
             }
 
@@ -207,36 +249,99 @@ function switchClick(page_type) {
             showDialog({
                 message: response.data.msg ? response.data.msg : '网络连接错误，请刷新重试',
             }).then(() => {
-                router.replace({ name: 'CourseQuestion', query: { id: aid, type: route.query.type } })
+                router.replace({ name: 'CourseQuestion', query: { id: aid.value, type: route.query.type } })
             });
         }
     })
         .catch(error => {
-            showDialog({
-                message: '网络连接错误，请刷新重试',
-            }).then(() => {
-                router.replace({ name: 'CourseQuestion', query: { id: aid, type: route.query.type } })
-                // on close
-            });
+            handleApiError()
+        })
+        .finally(() => {
+            isLoading.value = false
         });
 }
 
+function onFinish() {
+
+    
+    showTimer.value = false
+    if (lockClick || isLoading.value) {
+        return
+    }
+    showToast('时间到，自动提交答案')
+    isLoading.value = true
+    lockClick = true
+    const duration = Math.floor((time.value - remainingTime.value) / 1000)
+    remainingTime.value = 0
+    answerActivity('', duration)
+}
+
 function getActivity() {
-    // console.log("proxy", process)
+    let ctid = getQrSession(null)?.inviteCode || ''
     proxy.$axios.post(proxy.$config.domain + 'Course/QuestionTopicInfo', {
-        id: aid
+        id: aid.value, 
+        ctid: ctid
     }).then(response => {
         if (response.data.code === 200) {
             const d = response.data.data
             if (d.title) {
                 document.title = d.title
             }
+
+            if (d.auth_status == activityInfoStatus.ActivityInfoStatusMobile) {
+                let dialogMessage = '注册认证成功后才能参加活动哦'
+                let dialogConfirmButtonText = '去注册认证'
+                if (d.auth_type != 1) {
+                    dialogMessage = '注册后才能参加活动哦'
+                    dialogConfirmButtonText = '去注册'
+
+                }
+                showDialog({
+                    message: dialogMessage,
+                    confirmButtonText: dialogConfirmButtonText,
+                }).then(() => {
+                    router.replace({ name: 'UserReg', query: { id: aid.value, page: 'CourseAnswer', type: '', 
+                        auth_type: d.auth_type } })
+                });
+
+                return
+            } else if (d.auth_status == activityInfoStatus.ActivityInfoStatusAuth) {
+                showDialog({
+                    message: '认证成功后才能参加活动哦',
+                    confirmButtonText: '去个人中心',
+                }).then(() => {
+                    router.replace({ name: 'UserMine', query: { id: aid.value, page: 'CourseAnswer', type: '' } })
+                });
+
+                return
+            } else if (d.auth_status == activityInfoStatus.ActivityInfoStatusLimitAuth) {
+                showDialog({
+                    message: d.tip_img,
+                    showConfirmButton: false,
+                })
+
+                return
+            } else if (d.auth_status == activityInfoStatus.ActivityInfoStatusLimitChain) {
+                showDialog({
+                    message: '仅限指定连锁参加，你暂未获得活动参与权限！',
+                    confirmButtonText: '去学习中心',
+                }).then(() => {
+                    router.replace({ name: 'CourseIndex' })
+                });
+
+                return
+            }   else if (d.auth_status == 3 || d.auth_status == 5 || d.auth_status == 6) {
+                showNoStartPop.value = true
+                noStartImg.value = d.tip_img
+                return
+            } else {
+            }
             if (d.status == 2) {
-                router.replace({ name: 'CourseResult', query: { id: aid, type: route.query.type } })
+                router.replace({ name: 'CourseResult', query: { id: aid.value, type: route.query.type } })
                 return
             }
             if (d.status != 1) {
-                router.replace({ name: 'CourseQuestion', query: { id: aid, type: route.query.type } })
+                router.replace({ name: 'CourseQuestion', query: { id: aid.value, type: route.query.type } })
                 return
             }
 
@@ -252,10 +357,9 @@ function getActivity() {
 }
 
 function answerActivity(answer, duration) {
-    // console.log("proxy", process)
-    // console.log("domain", proxy.$config.domain)
+    showTimer.value = false
     proxy.$axios.post(proxy.$config.domain + 'Course/AnswerQuestionInfo', {
-        aid: aid,
+        aid: aid.value,
         answer: answer,
         topicLogId: topicLogId,
         logId: logId,
@@ -265,25 +369,14 @@ function answerActivity(answer, duration) {
             const d = response.data.data
             formatInfo(d)
         } else {
-            showDialog({
-                message: '网络连接错误，请刷新重试',
-            }).then(() => {
-                router.replace({ name: 'CourseQuestion', query: { id: aid, type: route.query.type } })
-            });
-            // showEmpty.value = true
-            // tipMessage.value = response.data.message ?response.data.message:'获取问题失败，请重试'
-            // this.$toast(response.data.message)
+            handleApiError()
         }
     })
         .catch(error => {
-            // tipMessage.value = "获取问题失败，请重试"
-            // console.log(error)
-            showDialog({
-                message: '网络连接错误，请刷新重试',
-            }).then(() => {
-                router.replace({ name: 'CourseQuestion', query: { id: aid, type: route.query.type } })
-                // on close
-            });
+            handleApiError()
+        })
+        .finally(() => {
+            isLoading.value = false
         });
 }
 
@@ -294,10 +387,7 @@ function formatInfo(d) {
 
     askSum.value = d.cnt
 
-
-
     askList.value = d.answers
-
 
     downTimeout = d.timeout
     showDownIndex.value = 11
@@ -311,12 +401,37 @@ function formatInfo(d) {
     result.value = d.result
     if (d.result && d.result.correct) {
         lockClick = true
+        if (!d.result.answer) {
+            d.result.answer = ''
+        }   
         result.value.correct = d.result.correct.replaceAll(',', '')
         result.value.answer = d.result.answer.replaceAll(',', '')
         return
     }
     lockClick = false
-}
+    
+    handleResetOriginal(d.timeout)
+};
+
+const handleResetOriginal = async (newTime) => {
+    
+  if (remainingTime.value > 0) {
+    const remainingSeconds = remainingTime.value / 1000
+    if (newTime > remainingSeconds) {
+      time.value = remainingTime.value
+      remainingTime.value = 0
+    } else {
+      time.value = newTime * 1000
+      remainingTime.value = 0
+    }
+  } else {
+    time.value = newTime * 1000
+  }
+  showTimer.value = true;
+
+  await nextTick();
+  countDownRef.value?.reset();
+};
 
 
 onMounted(() => {
@@ -325,13 +440,15 @@ onMounted(() => {
         router.replace({ path: '/404', query: { msg: '未找到活动' } })
         return
     }
-    aid = id
+    aid.value = id
     getActivity()
 
 })
 
 onBeforeUnmount(() => {
-
+    if (countDownRef.value) {
+        countDownRef.value = null
+    }
 })
 </script>
 <style lang="scss" scoped>
@@ -354,6 +471,12 @@ onBeforeUnmount(() => {
         ;
         line-height: 1.2rem;
         padding-left: 0.36rem;
+        .topic-num-index {
+            flex: 1;
+        }
+        .topic-time {
+            margin-right: 0.36rem;
+        }
 
         span {
             font-size: 0.42rem;

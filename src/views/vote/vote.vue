@@ -31,9 +31,13 @@
 
                 <template #default="timeData">
                     距离活动结束还有：
-                    <span>{{ ('0' + timeData.days).slice(-2) }}</span>天<span>{{ ('0' +
-                        timeData.hours).slice(-2) }}</span>时<span>{{ ('0' + timeData.minutes).slice(-2)
-                        }}</span>分<span>{{ ('0' + timeData.seconds).slice(-2) }}</span>秒
+                    <!-- 天数通常可能很大，建议不强制补零，或者至少允许超过2位 -->
+    <span>{{ String(timeData.days).padStart(2, '0') }}</span>天
+    
+    <!-- 时、分、秒固定两位，不足补零 -->
+    <span>{{ String(timeData.hours).padStart(2, '0') }}</span>时
+    <span>{{ String(timeData.minutes).padStart(2, '0') }}</span>分
+    <span>{{ String(timeData.seconds).padStart(2, '0') }}</span>秒
                 </template>
 
             </van-count-down>
@@ -53,7 +57,7 @@
             <div :class="tabSelIndex == 3 ? 'active' : ''" @click="selectTab(3)">规则详情</div>
         </div>
         <van-list v-model:loading="loading" :finished="finished" v-model:error="error" error-text="请求失败，点击重新加载"
-            finished-text="没有更多了~" style="flex-direction: column;" @load="onLoad" v-if="tabSelIndex == 1">
+            finished-text="没有更多了~" style="flex-direction: column;" @load="onLoad" :immediate-check="false" v-if="tabSelIndex == 1">
             <div class="vote-user-item-card" v-for="(item, index) in list" :key="index" @click="goClick(item)">
                 <div flex="dir:left main:center cross:top">
                     <div class="left-div" flex="dir:top main:left cross:top ">
@@ -61,19 +65,27 @@
                             <img class="vote-avatar" :src="item.avatar" />
                             <div flex="dir:top main:center cross:top">
                                 <div class="user-nickname"> {{ item.nickname }}</div>
-                                <div class="user-chain-name">{{ item.chainName }}</div>
+                                <div class="user-chain-name" v-if="item.chainName">{{ item.chainName }}</div>
+                                <div class="user-chain-name" v-else-if="item.business_name">{{ item.business_name }}</div>
+                                <div class="user-chain-name" v-else-if="item.clinic_name">{{ item.clinic_name }}</div>
                             </div>
                         </div>
-                        <img class="vote-img" :src="item.imgs" />
+                        <img class="vote-img" :src="item.imgs" v-if="item.imgs" />
+                        <img class="vote-img" :src="item.avatar" v-else />
+
                     </div>
 
                     <div class="right-div">
-                        <div class="vote-name"> {{ item.vote_name }}</div>
+                        <van-text-ellipsis rows="1" class="vote-name" :content="item.vote_name" />
                         <van-text-ellipsis rows="3" class="vote-info" :content="item.info" />
                         <div flex="dir:left main:justify cross:center">
-                            <div class="vote-num">{{ item.vote_num }}票</div>
-                            <div class="vote-btn vote-click" @click.stop="voteVoteClick(item)" v-if="item.vote_op_type == 2">立即投票</div>
+                            <div class="vote-num"  v-if="info.vote_type == 1">{{ item.vote_num }}票</div>
+
+                            <div class="vote-num"  v-else-if="item.vote_num">  {{ item.vote_num }}分</div>
+                            <div class="vote-num"  v-else>--</div>
+                            <div class="vote-btn vote-click disable" disable  v-if="item.award_name">{{ item.award_name }}</div>
                             <div class="vote-btn vote-click disable" disable  v-else-if="item.vote_op_type == 3">已投票</div>
+                            <div class="vote-btn vote-click" @click.stop="voteVoteClick(item)" v-else-if="info.vote_type == 1 && info.vote_vote_status == 1 && item.vote_op_type == 2">立即投票</div>
 
                         </div>
                     </div>
@@ -85,7 +97,7 @@
             </van-empty>
         </van-list>
         <van-list v-model:loading="loadingNum" :finished="finishedNum" v-model:error="errorNum" error-text="请求失败，点击重新加载"
-            finished-text="没有更多了~" style="flex-direction: column;" @load="onLoadNum" v-else-if="tabSelIndex == 2">
+            finished-text="没有更多了~" style="flex-direction: column;" @load="onLoadNum"  :immediate-check="false" v-else-if="tabSelIndex == 2">
            <div class="vote-user-item-card" v-for="(item, index) in listNum" :key="index" @click="goClick(item)">
                 <div flex="dir:left main:center cross:top">
                     <div class="left-div" flex="dir:top main:left cross:top ">
@@ -93,35 +105,43 @@
                             <img class="vote-avatar" :src="item.avatar" />
                             <div flex="dir:top main:center cross:top">
                                 <div class="user-nickname"> {{ item.nickname }}</div>
-                                <div class="user-chain-name">{{ item.chainName }}</div>
+                                <div class="user-chain-name" v-if="item.chainName">{{ item.chainName }}</div>
+                                <div class="user-chain-name" v-else-if="item.business_name">{{ item.business_name }}</div>
+                                <div class="user-chain-name" v-else-if="item.clinic_name">{{ item.clinic_name }}</div>
                             </div>
                         </div>
-                        <img class="vote-img" :src="item.imgs" />
+                        <img class="vote-img" :src="item.imgs" v-if="item.imgs" />
+                        <img class="vote-img" :src="item.avatar" v-else />
                     </div>
 
                     <div class="right-div">
-                        <div class="vote-name"> {{ item.vote_name }}</div>
+                        <van-text-ellipsis rows="1" class="vote-name" :content="item.vote_name" />
                         <van-text-ellipsis rows="3" class="vote-info" :content="item.info" />
                         <div flex="dir:left main:justify cross:center">
-                            <div class="vote-num">{{ item.vote_num }}票</div>
-                            <div class="vote-btn vote-click" @click.stop="voteVoteClick(item)" v-if="item.vote_op_type == 2">立即投票</div>
+                           <div class="vote-num"  v-if="info.vote_type == 1">{{ item.vote_num }}票</div>
+                            <div class="vote-num"  v-else-if="item.vote_num">  {{ item.vote_num }}分</div>
+                            <div class="vote-num"  v-else>--</div>
+                            <div class="vote-btn vote-click disable" disable  v-if="item.award_name">{{ item.award_name }}</div>
                             <div class="vote-btn vote-click disable" disable  v-else-if="item.vote_op_type == 3">已投票</div>
+                            <div class="vote-btn vote-click" @click.stop="voteVoteClick(item)" v-else-if="info.vote_type == 1 && info.vote_vote_status == 1 && item.vote_op_type == 2">立即投票</div>
 
                         </div>
                     </div>
                 </div>
                 <div class="vote-index-div">{{ item.vote_index }}号</div>
             </div>
-            <van-empty v-if="listNum.length === 0" description="暂无选手">
-                <div class="vote-btn" v-if="info.vote_status == 1" @click="voteClick">{{ info.btn_name }}</div>
+            <van-empty v-if="listNum.length === 0" description="暂无选手"> 
+                <div class="vote-btn" @click.stop="voteClick" v-if="info.vote_user_id">我的案例</div>
+                <div class="vote-btn" v-else-if="info.vote_status == 1" @click="voteClick">{{ info.btn_name }}</div>
             </van-empty>
         </van-list>
         <div class="content" v-html="info.content" v-else></div>
 
         <div class="fixed-bottom fixed-textarea">
             <div class="div-bottom" flex="dir:left cross:center">
-                <div class="vote-btn" @click.stop="voteClick" v-if="info.vote_status == 1">{{ info.btn_name }}</div>
-                <div class="vote-btn btn-default" @click.stop="voteClick"><van-icon name="share-o" />分享当前活动</div>
+                <div class="vote-btn" @click.stop="goMineClick" v-if="info.vote_user_id">我的案例</div>
+                <div class="vote-btn" @click.stop="voteClick" v-else-if="info.vote_status == 1">{{ info.btn_name }}</div>
+                <div class="vote-btn btn-default" @click.stop="shareClick" v-if="info.desc"><van-icon name="share-o" />分享当前活动</div>
             </div>
 
         </div>
@@ -132,23 +152,26 @@
         <img :src="noStartImg" />
     </van-popup>
 
+     <van-overlay :show="showGuide" @click="showGuide = false">
+      <img class="guide-img" src="../../assets/img/guide.png">
+</van-overlay>
+
 </template>
 
 
 <script lang="ts" setup>
 
-import { onMounted, onBeforeUnmount, ref, getCurrentInstance } from "vue"
+import { onMounted, onBeforeUnmount, ref, getCurrentInstance, nextTick } from "vue"
 
 import { useRouter } from 'vue-router'
 import { showToast, setToastDefaultOptions, showDialog } from "vant";
 
 
 import { activityInfoStatus } from '@/constants/ActivityInfoStatus'
-import mojs from '@mojs/core'
-import func from "vue-temp/vue-editor-bridge";
+import { setQrSession } from '@/js/utils/qrSession';
 // import CommentList from '@/components/comment/CommentList.vue'
 // import CommentInput from '@/components/comment/CommentInput.vue'
-
+import { initWechatShare, setShareConfig } from '../../js/wechatShare';
 
 const { currentRoute } = useRouter();
 const route = currentRoute.value;
@@ -164,6 +187,17 @@ let info = ref({
     rank_type: 2,
     vote_status: 2,
     btn_name: '我要报名',
+    desc: '',
+    content: '',
+    imgs: [],
+    title: '',
+    font_color: '',
+    theme_color: '',
+    user_total: 0,
+    vote_total: 0,
+    view: 0,
+    vote_user_id: '',
+    vote_vote_status: 2,
 })
 
 const aid = ref('')
@@ -185,6 +219,10 @@ const themeColor = ref('#FF814D')
 const fontColor = ref('#333333')
 const time = ref(-30 * 60 * 60 * 1000)
 const tabSelIndex = ref(3)
+
+
+const showGuide = ref(false)
+const isInitShare = ref(false)
 
 function selectTab(index) {
     tabSelIndex.value = index
@@ -228,6 +266,14 @@ function voteVoteClick(item) {
 
 }
 
+function goMineClick() {
+    if (info.value.vote_user_id) {
+        router.replace({ name: 'VoteDetail', query: { vote_id: aid.value, id : info.value.vote_user_id } })
+    } else {
+        voteClick()
+    }
+}
+
 function goClick(item) {
     router.replace({ name: 'VoteDetail', query: { vote_id: aid.value, id : item.id } })
 }
@@ -254,34 +300,42 @@ function onSearch() {
 }
 
 function getList(sort) {
-    if (sort == 1 && loading.value) {
-        return
-    } else if (sort == 2 && loadingNum.value) {
-        return
-    }
+    // console.log('getList', sort, tabSelIndex.value, page.value, pageNum.value, selKeyword.value, loading.value, loadingNum.value)
+    // if (sort == 1 && loading.value) {
+    //     return
+    // } else if (sort == 2 && loadingNum.value) {
+    //     return
+    // }
+    // 立即标记加载中，防止窗口期并发请求
+    // if (sort === 1) loading.value = true;
+    // else loadingNum.value = true;
     proxy.$axios.get(proxy.$config.domain + 'Vote/UserList?voteId=' + aid.value + '&page=' + (sort == 1 ? page.value : pageNum.value) + '&limit=10&sort=' + sort + '&keyword=' + selKeyword.value).then(response => {
         if (response.data.code === 200) {
 
             const d = response.data.data
             if (sort == 1) {
                 if (page.value == 1) {
-                    list.value = []
-                }
+                list.value = d  // 直接赋值，不清空再追加
+            } else if (d && d.length > 0){
+                let dlist =  list.value
+                dlist = dlist.concat(d)
+                list.value = dlist
+            }
                 page.value = page.value + 1
-                if (d && d.length > 0) {
-                    list.value = list.value.concat(d)
-                }
                 if (!d || d.length < 10) {
                     finished.value = true
                 }
                 loading.value = false
+               
             } else {
                 if (pageNum.value == 1) {
                     listNum.value = []
                 }
                 pageNum.value = pageNum.value + 1
                 if (d && d.length > 0) {
-                    listNum.value = listNum.value.concat(d)
+                    let dlist =  listNum.value
+                dlist = dlist.concat(d)
+                listNum.value = dlist
                 }
                 if (!d || d.length < 10) {
                     finishedNum.value = true
@@ -298,6 +352,8 @@ function getList(sort) {
             }
             // router.replace({path: '/404', query: { msg:response.data.msg ?response.data.msg:'网络连接错误，请刷新重试' }} )
         }
+        //  console.log('getList--finish', sort, tabSelIndex.value, page.value, pageNum.value, selKeyword.value, loading.value, loadingNum.value)
+   
 
     })
         .catch(e => {
@@ -308,6 +364,8 @@ function getList(sort) {
                 loadingNum.value = false
                 errorNum.value = true
             }
+            //  console.log('getList--err', e, sort, tabSelIndex.value, page.value, pageNum.value, selKeyword.value, loading.value, loadingNum.value)
+   
             // router.replace({ path: '/404', query: { msg:'网络连接错误，请刷新重试' } })
 
         });
@@ -323,48 +381,41 @@ function voteClick() {
     })
 }
 
-function getJsTicket() {
-    let url = window.location.href.split('#')[0]
-    proxy.$axios.get(proxy.$config.domain + 'User/GetTicketSign?url=' + encodeURIComponent(url)).then(response => {
-        if (response.data.code === 200) {
-            const d = response.data.data
-            wx.config({
-                debug: false,
-                appId: d.appId,
-                timestamp: d.timestamp,
-                nonceStr: d.nonceStr,
-                signature: d.signature,
-                jsApiList: ['updateAppMessageShareData', 'updateTimelineShareData'],
-                openTagList: ['wx-open-launch-weapp']
-            })
-            wx.ready(function () {
-                let sharedata = {
-                    title: info.value.title,
-                    desc: info.value.desc,
-                    link: info.value.share_url,
-                    imgUrl: info.value.thumb,
-                    success: function () { },
-                    cancel: function () { }
-                };
-                wx.updateAppMessageShareData(sharedata);
-                wx.updateTimelineShareData(sharedata);
-            });
-            wx.error(function (res) {
-                console.log(res)
-            })
 
-
-        } else {
-            console.log('成功了')
-            // router.replace({path: '/404', query: { msg:response.data.msg ?response.data.msg:'网络连接错误，请刷新重试' }} )
-
+function shareClick() {
+    try {
+        const isWeixin = /micromessenger/i.test(navigator.userAgent);
+        // 非微信：直接走兜底
+        if (!isWeixin || isInitShare.value) {
+          showGuide.value = true;
+          return;
         }
-    })
-        .catch(error => {
-            console.log('成功了--error', error)
-            // router.replace({ path: '/404', query: { msg:'网络连接错误，请刷新重试' } })
+        initWechatShare(proxy, window.location.href.split('#')[0]);
 
+        let href = window.location.href
+        if (href.indexOf('user_token=') > -1) {
+          href = href.replace(/user_token=[^&]*/g, '')
+        }
+        
+//   console.log( })
+
+        setShareConfig({
+          title: info.value.title,
+          desc: info.value.desc,
+          link:  href,
+          imgUrl: info.value.imgs[0],
+          success: () => {
+            showGuide.value = true;
+          },
+          fail: (err) => {
+            showGuide.value = true;
+          }
         });
+        isInitShare.value = true;
+      } catch (error) {
+        showGuide.value = true;
+        isInitShare.value = true;
+      }
 }
 
 function getActivity(adcode) {
@@ -390,7 +441,7 @@ function getActivity(adcode) {
                 }).then(() => {
                     router.replace({
                         name: 'UserReg', query: {
-                            id: aid.value, page: 'VideoVideo',
+                            id: aid.value, page: 'VoteVote',
                             auth_type: d.auth_type
                         }
                     })
@@ -402,7 +453,7 @@ function getActivity(adcode) {
                     message: '认证成功后才能参加活动哦',
                     confirmButtonText: '去个人中心',
                 }).then(() => {
-                    router.replace({ name: 'UserMine', query: { id: aid.value, page: 'VideoVideo' } })
+                    router.replace({ name: 'UserMine', query: { id: aid.value, page: 'VoteVote' } })
                 });
 
                 return
@@ -432,10 +483,18 @@ function getActivity(adcode) {
             if (info.value?.number_type == 1) {
                 tabSelIndex.value = 1
                 getList(1)
-            } else if (info.value?.rank_type == 2) {
+            }
+            if (tabSelIndex.value != 1 && info.value?.rank_type == 1) {
                 tabSelIndex.value = 2
                 getList(2)
             }
+
+            if (info.value?.font_color && info.value?.theme_color) {
+                fontColor.value = info.value.font_color
+                themeColor.value = info.value.theme_color
+            }
+
+            
 
         } else {
             router.replace({ path: '/404', query: { msg: response.data.msg ? response.data.msg : '网络连接错误，请刷新重试' } })
@@ -491,6 +550,13 @@ onMounted(() => {
         getActivity('')
     }
 
+    let ctid = route.query.ctid
+    if (ctid && typeof ctid === 'string') {
+        // 在任何页面获取到邀请码时
+        setQrSession(ctid, 'vote', aid.value, proxy.$config.appKey);
+
+    }
+
 })
 
 onBeforeUnmount(() => {
@@ -503,7 +569,7 @@ onBeforeUnmount(() => {
 
     background: #f7f7f7;
     background-color: #f7f7f7;
-    padding-bottom: 3rem;
+   padding-bottom: 3rem;
 
     .title-div {
         margin: 0.4rem;

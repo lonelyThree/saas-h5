@@ -520,7 +520,9 @@ function submitInfo(fileName) {
         // message: '正在比对录音',
     });
 
-    proxy.$axios.post(proxy.$config.domain + "Activity/ReceiptResult", { aid: aid, fileName: fileName }, { hideLoading: true, toJSON: true })
+    let ctid = route.query.ctid || ''
+
+    proxy.$axios.post(proxy.$config.domain + "Activity/ReceiptResult", { aid: aid, fileName: fileName, ctid: ctid }, { hideLoading: true, toJSON: true })
         .then(response => {
              closeToast()
             // console.log(response, "response====response")

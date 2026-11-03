@@ -119,6 +119,7 @@ import { useRouter } from 'vue-router'
 import { showToast, setToastDefaultOptions, showLoadingToast, closeToast, showDialog, showImagePreview } from "vant";
 import { activityInfoStatus } from '@/constants/ActivityInfoStatus'
 import { initWechatShare, setShareConfig } from '../../js/wechatShare';
+import { setQrSession } from '@/js/utils/qrSession';
 
 
 const { currentRoute } = useRouter();
@@ -211,6 +212,7 @@ function getActivity(adcode) {
             }   else if (d.status == 3 || d.status == 5 || d.status == 6) {
                 showNoStartPop.value = true
                 noStartImg.value = d.tip_img
+                return
             } else {
             }
 
@@ -299,6 +301,14 @@ onMounted(() => {
     } else {
         getActivity('')
     }
+
+    let ctid = route.query.ctid
+    if (ctid && typeof ctid === 'string') {
+        // 在任何页面获取到邀请码时
+        setQrSession(ctid, 'course', courseId, proxy.$config.appKey);
+
+    }
+        
 
 })
 

@@ -808,6 +808,10 @@ function getUserProfileInfo() {
         }
     }).then(response => {
         if (response.data.code === 200) {
+            response.data.data.info.adcode = regInfo.value.adcode
+            response.data.data.info.lat = regInfo.value.lat
+            response.data.data.info.lng = regInfo.value.lng
+            response.data.data.info.city = regInfo.value.city
             regInfo.value = { ...regInfo.value, ...response.data.data.info }
             regInfo.value.display_type = response.data.data.display_type
             if (regInfo.value.mobile != "") {

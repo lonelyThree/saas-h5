@@ -110,8 +110,21 @@
                 <div class="empty"></div>
                 <div class="tip-title">中奖啦!</div>
                 <img class="award-icon" src="../../assets/img/award-pro-icon.png" />
-                <img class="award-pro" :src="awardInfo.img" />
-                <div class="pro-title">{{awardInfo.title}}</div>
+
+                <img class="award-pro"  v-if="awardInfo.award_type == 4" :src="awardInfo.img" />
+                <img class="award-pro no-pro" v-else-if="awardInfo.award_type == 2 || awardInfo.award_type == 3 "
+                    src="../../assets/img/credit-big-img.png">
+                <img class="award-pro no-pro" v-else-if="awardInfo.award_type == 1" src="../../assets/img/red-big-img.png">
+
+                <div class="money-div " v-if="awardInfo.award_type == 3">＋<span>{{ awardInfo.money / 100 }}</span></div>
+                <div class="money-div " v-else-if="awardInfo.award_type == 2">＋<span>{{ awardInfo.money }}</span></div>
+                <div class="money-div " v-else-if="awardInfo.award_type == 1">￥<span>{{ awardInfo.money / 100 }}</span></div>
+
+                
+               
+
+            
+                <div class="pro-title"  v-else-if="awardInfo.award_type == 4">{{awardInfo.title}}</div>
                 <div class="tip">恭喜你咯！获得{{awardInfo.name}}！</div>
                 <div class="user-div" flex="dir:left cross:center main:center">
                     <div class="info" flex="dir:top cross:center main:center">
@@ -124,12 +137,13 @@
                     </div>
                 </div>
             </div>
-            <div class="start-btn-bg end"  v-if="askStatus == 10">
+            <div class="start-btn-bg end"  v-if="askStatus == 10 && awardInfo.award_type == 4">
                 已领取
             </div>
-            <div class="start-btn-bg" @click="addressClick"  v-if="askStatus == 9">
+            <div class="start-btn-bg" @click="addressClick"  v-else-if="askStatus == 9 && awardInfo.award_type == 4">
                 立即领取
             </div>
+            <div class="start-btn-bg-empty" v-else></div>
             <div class="btn-bottom-empty"></div>
         </div>
         <tabbar :index="0" :aid="aid"/>
@@ -155,6 +169,8 @@ import tabbar from '../../components/custom_tabbar.vue'
 import { useRouter } from 'vue-router'
 
 import { activityInfoStatus } from '@/constants/ActivityInfoStatus'
+
+import { setQrSession } from '@/js/utils/qrSession';
 
 
 const { currentRoute } = useRouter();
@@ -195,7 +211,9 @@ const awardInfo = ref({
     img: "",
     name: "",
     nickname: "",
-    title: ""
+    title: "",
+    award_type: 0,
+    money: 0
 })
 
 //将时间减去1秒，计算天、时、分、秒 
@@ -410,6 +428,11 @@ onMounted(() => {
         return
     }
     aid.value = id
+    let ctid = route.query.ctid
+    if (ctid && typeof ctid === 'string') {
+        // 在任何页面获取到邀请码时
+        setQrSession(ctid, 'ask', aid.value, proxy.$config.appKey);
+    }
     getActivity()
 
 })
@@ -429,7 +452,9 @@ onBeforeUnmount(() => {
 .main-content.result{
     background: #ffedcd;
 }
-
+.start-btn-bg-empty{
+    height: 1.6rem;
+}
 .start-btn-bg {
     // margin: 17.36rem 1.47rem auto 1.8rem;
     height: 1.6rem;
@@ -791,6 +816,10 @@ onBeforeUnmount(() => {
             height: 3.6rem;
             margin: 0.6rem auto 0.3rem;
         }
+        .award-pro.no-pro {
+            margin: 0.2rem auto 0.3rem;
+        }
+
         .pro-title {
             font-size: 0.43rem;
             color: #333333;
@@ -815,6 +844,24 @@ onBeforeUnmount(() => {
                 }
             }
         }
+
+         .money-div {
+                font-size: 1rem;
+                font-weight: 500;
+                color: #FE8E09;
+                line-height: 1.2rem;
+                height: 1.2rem;
+
+    
+                text-align: center;
+            
+
+                span {
+                    font-size: 1.36rem;
+                    font-family: Gilroy;
+                    font-weight: bold;
+                }
+            }
     }
     .award-btn {
         margin: 0.12rem 0.76rem 0.8rem;

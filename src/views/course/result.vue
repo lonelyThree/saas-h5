@@ -4,7 +4,8 @@
             <div class="topic-bg" flex="dir:left cross:center" >
                 <div class="topic-num" >
                     <div>很不错哦！</div> 
-                    <span>恭喜您将获得本次活动{{ result.award_type == 2 ? '积分' : (result.award_type == 3?'星币':'元红包') }}</span>
+                    <span v-if="result.money == 0">恭喜您通过本次考试</span>
+                    <span v-else>恭喜您将获得本次活动{{ result.award_type == 2 ? '积分' : (result.award_type == 3?'星币':'元红包') }}</span>
                 </div>
                 <img src="../../assets/img/award-img.png" />
             </div>
@@ -13,10 +14,12 @@
               
                 <div class="border-bg">
                     <div class="answer-num">
-                        答对<div><span>{{ result.correctNum }}</span>/{{ result.cnt }}</div>题
+                        总得分<div><span>{{ (result.correctNum * 100 / result.cnt).toFixed(0) }}</span></div>分
                     </div>
                     <img  v-if="result.award_type == 2 || result.award_type == 3" src="../../assets/img/credit-big-img.png">
                     <img v-else src="../../assets/img/red-big-img.png">
+
+                    <div v-if="result.money != 0">
 
                     <div class="money-div " v-if="result.award_type == 3"><span>＋{{ result.money/100 }}</span></div>
                     <div class="money-div " v-else-if="result.award_type == 2"><span>＋{{ result.money }}</span></div>
@@ -27,6 +30,7 @@
 
                     <div class="award-btn " v-else-if="result.award_type == 2 || result.award_type == 3">已领取</div>
                         <div class="award-btn "  v-else>已提现</div>
+                    </div>
                 </div>
 
             </div>
@@ -36,7 +40,8 @@
             <div class="topic-bg" flex="dir:left cross:center" >
                     <div class="topic-num" >
                         <div>很遗憾</div> 
-                        <span>没有达标，无法领取{{ result.award_type == 2 ? '积分' : (result.award_type == 3?'星币':'红包') }}</span>
+                        <span v-if="result.money == 0">考试成绩不合格</span>
+                        <span v-else>没有达标，无法领取{{ result.award_type == 2 ? '积分' : (result.award_type == 3?'星币':'红包') }}</span>
                     </div>
                     <img src="../../assets/img/award-no-img.png" />
                 </div>
@@ -45,10 +50,12 @@
               
                     <div class="border-bg">
                         <div class="answer-num">
-                            答对<div><span>{{ result.correctNum }}</span>/{{ result.cnt }}</div>题
+                           总得分<div><span>{{ (result.correctNum * 100 / result.cnt).toFixed(0) }}</span></div>分
                         </div>
-                        <img src="../../assets/img/red-big-no-img.png">
-                        <div class="tip-div">答对{{result.standardNum}}题才能领取{{ result.award_type == 2 ? '积分' : (result.award_type == 3?'星币':'元红包') }}哦</div>
+                        
+                        <img src="../../assets/img/red-big-no-img-fail.png">
+                        <div class="tip-div">总得分超过{{(result.standardNum * 100 / result.cnt).toFixed(0) }}分才能领取奖励哦</div> 
+                        <!-- <div class="tip-div">答对{{result.standardNum}}题才能领取{{ result.award_type == 2 ? '积分' : (result.award_type == 3?'星币':'元红包') }}哦</div> -->
                         <div class="award-btn " @click="reAnswer">重新答题（{{ result.failNum }}/{{ result.joinNum }}）</div>
                     </div>
 

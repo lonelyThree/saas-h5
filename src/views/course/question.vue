@@ -29,7 +29,7 @@ import { showToast } from "vant";
 import { onMounted, onBeforeUnmount, ref, getCurrentInstance, nextTick, shallowRef } from "vue"
 
 import { useRouter } from 'vue-router'
-import func from "vue-temp/vue-editor-bridge";
+import { getQrSession } from '@/js/utils/qrSession';
 
 
 const { currentRoute } = useRouter();
@@ -52,13 +52,19 @@ function startClick() {
 
 
 function getInfo() {
- 
-    proxy.$axios.get(proxy.$config.domain + 'Course/QuestionInfo?course_id=' + courseId +"&id="+questionId ).then(response => {
+
+    let ctid = getQrSession({
+    bindType: 'course', 
+    activityId: courseId, 
+    appKey: proxy.$config.appKey
+})?.inviteCode || ''
+
+    proxy.$axios.get(proxy.$config.domain + 'Course/QuestionInfo?course_id=' + courseId +"&id="+questionId+"&ctid="+ctid).then(response => {
         // console.log(response)
         if (response.data.code === 200) {
             const d = response.data.data
             if (d.name) {
-                document.title = d.name + "试卷介绍"
+                document.title = d.name + "试卷"
             }
             info.value = d   
 

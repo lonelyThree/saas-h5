@@ -154,6 +154,7 @@ const { proxy } = getCurrentInstance()
 
 let routerName = ""
 let aType = ""
+const jumpAid = ref('')
 
 
 const regInfo = ref({
@@ -170,6 +171,13 @@ const regInfo = ref({
     company_id_type: 0, // 企业用户身份 1 经理 2 主管 3 业务代表 4 其他
 
     display_type: 1,
+
+    adcode: '',
+    lat: '',
+    lng: '',
+    city: '',
+
+
 })
 
 const companyUserTypeOptions = ref([
@@ -354,7 +362,7 @@ function submitInfo() {
                     router.replace({ name: 'SalesmanMine' })
                     return
                 }
-                router.replace({ name: routerName, query: { 'id': regInfo.value.aid, 'type': route.query.type } })
+                router.replace({ name: routerName, query: { 'id': jumpAid.value, 'type': route.query.type } })
                 return
             }
 
@@ -383,6 +391,10 @@ function onLoad() {
 function getUserProfileInfo() {
     proxy.$axios.get(proxy.$config.domain + 'SalesMan/UserProfileInfo').then(response => {
         if (response.data.code === 200) {
+             response.data.data.info.adcode = regInfo.value.adcode
+            response.data.data.info.lat = regInfo.value.lat
+            response.data.data.info.lng = regInfo.value.lng
+            response.data.data.info.city = regInfo.value.city
             regInfo.value = { ...regInfo.value, ...response.data.data.info }
             regInfo.value.display_type = response.data.data.display_type
             if (regInfo.value.mobile != "") {
@@ -508,6 +520,30 @@ function companySelClick(item) {
         });
 }
 
+function showGeoPosition(position) {
+    // console.log("showGeoPosition", position)
+    regInfo.value.adcode = position.adcode
+    regInfo.value.lat = position.lat
+    regInfo.value.lng = position.lng
+    regInfo.value.city = position.city
+    // poiSearch()
+    getUserProfileInfo()
+    // onSearch()
+
+}
+
+function showGeoErr() {
+    // alert('定位失败')
+    router.replace({ path: '/404', query: { msg: '获取位置失败' } })
+}
+
+function GetGeo() {
+    var geolocation = new qq.maps.Geolocation('SZOBZ-HGB3J-UZWF6-DJFLD-6YX7F-FGFRR', 'saas')
+    // 获取位置信息, ip定位， 非精确定位
+    geolocation.getIpLocation(showGeoPosition, showGeoErr)
+}
+
+
 
 onMounted(() => {
     let id = route.query.aid
@@ -516,7 +552,7 @@ onMounted(() => {
     }
 
 
-    getPicCaptcha()
+    // getPicCaptcha()
     
 
     let page = route.query.page
@@ -529,7 +565,11 @@ onMounted(() => {
         aType = atype
     }
 
-    getUserProfileInfo()
+    jumpAid.value = route.query.id as string || ''
+
+    GetGeo()
+
+    // getUserProfileInfo()
 })
 
 

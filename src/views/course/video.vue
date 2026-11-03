@@ -39,294 +39,699 @@
     </div>
 </template>
 
-
 <script lang="ts" setup>
 
-import { onMounted, onBeforeUnmount, ref, getCurrentInstance, nextTick, shallowRef } from "vue"
-
+import { onMounted, onBeforeUnmount, ref, getCurrentInstance } from "vue"
+import { showDialog } from "vant";
 import { useRouter } from 'vue-router'
-import { showToast, setToastDefaultOptions, showLoadingToast, closeToast, showDialog, showImagePreview } from "vant";
+import {
+    showToast,
+    setToastDefaultOptions,
+} from "vant"
 
+import DPlayer from 'dplayer'
 
-import DPlayer from 'dplayer';
-import { comma } from "postcss/lib/list";
-import func from "vue-temp/vue-editor-bridge";
+import { setQrSession, getQrSession } from '@/js/utils/qrSession';
 
-
-const { currentRoute } = useRouter();
-const route = currentRoute.value;
+const { currentRoute } = useRouter()
+const route = currentRoute.value
 const router = useRouter()
 
 const { proxy } = getCurrentInstance()
 
-
-
-
-let  dplay = null
+let dplay: any = null
 
 let courseId = ''
 let videoId = ''
 
+// 当前真实播放时间
+let currentPlayTime = 0
+
+// 已允许观看的最大时间（防快进）
+let maxAllowedTime = 0
+
+// 是否内部 seek
+let internalSeek = false
+
+// 定时保存器
+let saveTimer: any = null
+
 const title = ref('')
+
 const list = ref([
     {
-        title:'--',
+        id: '',
+        title: '--',
         log_id: '',
         view_time: 0,
         is_award: 0,
         money: 0,
         url: '',
         last_view_time: 0,
-        
-        
     },
 ])
+
 const awardType = ref(1)
+
 const itemIndex = ref(0)
 
 const showPop = ref(false)
 
-const regPacketBg = ref('https://vipimg.ai-xbys.com/saas/img/c8591447/46f869ee/1736785033766.png')
+const regPacketBg = ref(
+    'https://vipimg.ai-xbys.com/saas/img/c8591447/46f869ee/1736785033766.png'
+)
+
 const money = ref(0)
+
 const logId = ref('')
 
+const isQuick = ref(false)
 
-
-
-const lastValidTime = ref(0)
+// =========================
+// 返回
+// =========================
 
 function backClick() {
-    router.replace({ name: 'CourseCourse', query: { id: courseId, type: '' } })
+
+    router.replace({
+        name: 'CourseCourse',
+        query: {
+            id: courseId,
+            type: ''
+        }
+    })
 }
+
+// =========================
+// 领取奖励
+// =========================
 
 function receiveClick() {
 
-    proxy.$axios.post(proxy.$config.domain + "Course/VideoReceiptAward", { id:logId.value, course_id:courseId}, { toJSON: true }).then(response => {
-        // showLoading = false;
+    proxy.$axios.post(
+        proxy.$config.domain + "Course/VideoReceiptAward",
+        {
+            id: logId.value,
+            course_id: courseId
+        },
+        {
+            toJSON: true
+        }
+    ).then(response => {
+
         if (response.data.code === 200) {
-            let d = response.data.data
+
+            const d = response.data.data
+
             if (d.status == 0) {
+
                 showToast(d.msg)
-            } else if (d.status == 200 ) {
+
+            } else if (d.status == 200) {
+
                 showPop.value = false
+
                 showToast(d.msg)
-                if(list.value[itemIndex.value].is_award == 1){
+
+                if (list.value[itemIndex.value].is_award == 1) {
+
                     list.value[itemIndex.value].is_award = 2
                 }
-            } else {
-                showToast(response.data.msg ? response.data.msg : '领取失败');
-            }
-            
-        } else {
-            showToast(response.data.msg ? response.data.msg : '领取失败');
-            // self.prevent = false;
-        }
-    }).catch(error => {
-            showToast("领取失败！");
-        });
 
+            } else {
+
+                showToast(
+                    response.data.msg
+                    ? response.data.msg
+                    : '领取失败'
+                )
+            }
+
+        } else {
+
+            showToast(
+                response.data.msg
+                ? response.data.msg
+                : '领取失败'
+            )
+        }
+
+    }).catch(() => {
+
+        showToast("领取失败！")
+    })
 }
 
-function updatePlayInfo(index, item) { 
+// =========================
+// 保存进度
+// =========================
+
+function SaveVideoProcess(item, index, viewTime) {
+    if (isQuick.value) {
+        return
+    }
+
+    if (item.is_award != 0) {
+        return
+    }
+
+    let ctid = getQrSession({
+    bindType: 'watchVideo', 
+    activityId: courseId, 
+    appKey: proxy.$config.appKey
+})?.inviteCode || ''
+
+
+
+    proxy.$axios.post(
+        proxy.$config.domain + 'Course/SaveVideoProcess',
+        {
+            id: item.log_id,
+            course_id: courseId,
+            video_id: item.id,
+            view_time: Math.ceil(viewTime),
+            ctid: ctid
+        },
+        {
+            toJSON: true,
+            hideLoading: true
+        }
+    ).then(response => {
+
+        if (response.data.code === 200) {
+
+            const d = response.data.data
+
+            if (d.log_id && !item.log_id) {
+
+                item.log_id = d.log_id
+
+                list.value[index].log_id = d.log_id
+            }
+
+            if (d.is_award == 1) {
+
+                list.value[index].is_award = d.is_award
+
+                if (awardType.value != 2) {
+                    money.value = d.money / 100.0
+                } else {
+                    money.value = d.money
+                }
+
+                logId.value = item.log_id
+
+                showPop.value = true
+
+            } else if (d.is_award == 2) {
+
+                list.value[index].is_award = d.is_award
+            }
+
+        } else {
+
+            showToast('网络连接错误，请刷新重试')
+        }
+
+    }).catch(() => {
+
+        showToast('网络连接错误，请刷新重试')
+    })
+}
+
+// =========================
+// 定时保存
+// =========================
+
+function saveProgress(force = false) {
+
+    if (!dplay || !dplay.video) {
+        return
+    }
+
+    if (isQuick.value) {
+                return
+            }
+
+    const item = list.value[itemIndex.value]
+
+    const current = currentPlayTime
+
+    // 非强制保存
+    if (!force) {
+
+        // 10 秒内不重复保存
+        if (
+            current - (item.last_view_time || 0)
+            < 10
+        ) {
+            return
+        }
+    }
+
+    item.view_time = current
+
+    item.last_view_time = current
+
+    SaveVideoProcess(
+        item,
+        itemIndex.value,
+        current
+    )
+}
+
+// =========================
+// 页面隐藏
+// =========================
+
+function handleVisibilityChange() {
+
+    if (document.hidden) {
+
+        saveProgress(true)
+    }
+}
+
+// =========================
+// 页面关闭
+// =========================
+
+function beforeUnloadHandler() {
+
+    saveProgress(true)
+}
+
+// =========================
+// 更新播放器
+// =========================
+
+function updatePlayInfo(index, item) {
+
     itemIndex.value = index
+
+    currentPlayTime = item.view_time || 0
+
+    maxAllowedTime = item.view_time || 0
+
+    internalSeek = true
+
     dplay.switchVideo({
         url: item.url
     })
-    lastValidTime.value = item.view_time
-    dplay.seek(item.view_time)
-    showToast('上次观看到'+parseInt(item.view_time)+'秒')
 
-    if(item.is_award == 1 && item.money > 0) {
+    // 等待视频切换完成
+    setTimeout(() => {
+
+        dplay.seek(item.view_time || 0)
+
+        internalSeek = false
+
+    }, 300)
+
+    showToast(
+        '上次观看到'
+        + parseInt(item.view_time)
+        + '秒'
+    )
+
+    // 未领取奖励
+    if (item.is_award == 1 && item.money > 0) {
+
         logId.value = item.log_id
+
         if (awardType.value != 2) {
-                    money.value = item.money / 100.0
-                } else {
-                   money.value = item.money
-                }
-                showPop.value = true
+            money.value = item.money / 100.0
+        } else {
+            money.value = item.money
+        }
+
+        showPop.value = true
     }
-    if(item.is_award == 2 && item.money > 0) {
+
+    // 已领取奖励
+    if (item.is_award == 2 && item.money > 0) {
+
         showToast('已领取观看奖励')
     }
 }
 
+// =========================
+// 点击视频
+// =========================
 
 function itemClick(index, item) {
-    if(index == itemIndex.value ) {
+
+    if (index == itemIndex.value) {
         return
     }
-    list.value[itemIndex.value].view_time = dplay.video.currentTime
+
+    // 先保存当前进度
+    saveProgress(true)
+
     updatePlayInfo(index, item)
 }
 
-
-
-
-
-
-setToastDefaultOptions({ duration: 2000 });
-
-function SaveVideoProcess(item, index, viewTime) {
-    if (item.is_award != 0) {
-        return
-    }
-    // console.log("domain", proxy.$config.domain)
-    proxy.$axios.post(proxy.$config.domain + 'Course/SaveVideoProcess', {
-        id:item.log_id,
-        course_id:courseId,
-        video_id:item.id,
-        view_time:Math.ceil(viewTime),
-    }, { toJSON: true, hideLoading: true }).then(response => {
-        if (response.data.code === 200) {
-            const d = response.data.data
-            if (d.log_id && !item.log_id) {
-                item.log_id = d.log_id
-                list.value[index].log_id = d.log_id
-            }
-            
-            if(d.is_award == 1) {
-                list.value[index].is_award = d.is_award
-                if (awardType.value != 2) {
-                    money.value = d.money / 100.0
-                } else {
-                   money.value = d.money
-                }
-                logId.value = item.log_id
-                showPop.value = true
-
-            } else if (d.is_award == 2) { 
-                list.value[index].is_award = d.is_award
-            }
-        } else {
-            showToast('网络连接错误，请刷新重试')
-        }
-    })
-        .catch(error => {
-            showToast('网络连接错误，请刷新重试')
-        });
-}
+// =========================
+// 获取视频列表
+// =========================
 
 function getVideoList() {
- 
-    proxy.$axios.get(proxy.$config.domain + 'Course/Video?course_id=' + courseId ).then(response => {
-        // console.log(response)
-        if (response.data.code === 200) {
-            const d = response.data.data
-            if (d.title) {
-                document.title = d.title
-                title.value = d.title
-            }
 
-            if (d.list) {
-                list.value = d.list
-            }
-            awardType.value = d.award_type
+    proxy.$axios.get(
+        proxy.$config.domain
+        + 'Course/Video?course_id='
+        + courseId
+    ).then(response => {
 
-            if (videoId != '') {
-                for (let i = 0; i < d.list.length; i++) {
-                    const item = d.list[i]
-                    if (item.id == videoId) {
-                        itemIndex.value = i
-                        break
-                    }
+        if (response.data.code !== 200) {
+
+            router.replace({
+                path: '/404',
+                query: {
+                    msg: response.data.msg
+                        ? response.data.msg
+                        : '网络连接错误，请刷新重试'
                 }
-            }
+            })
 
-
-            if (awardType.value == 2) {
-                regPacketBg.value = 'https://vipimg.ai-xbys.com/saas/img/c8591447/46f869ee/1736788632404.png'
-            } else if (awardType.value == 3) {
-                regPacketBg.value = 'https://vipimg.ai-xbys.com/saas/img/c8591447/46f869ee/1736788918168.png'
-            }
-
-
-            
-
-            const item = list.value[itemIndex.value]
-
-    
-
-            dplay = new DPlayer({
-                container: document.getElementById('dplayer'),
-                color: "#f00", //主题色
-                lang: 'zh-cn',
-                hotkey:false,
-                playbackSpeed:[],
-                contextmenu:[],
-                video: {
-                    url: item.url,
-                },
-            });
-
-            dplay.on('timeupdate', function () {
-                const currentTime = dplay.video.currentTime
-                if (currentTime - lastValidTime.value > 2) { // 检测到异常跳转
-                    dplay.seek(lastValidTime.value)
-                    showToast('禁止快进操作', 2000) // 提示显示2秒
-                }
-                lastValidTime.value = currentTime
-                
-                list.value[itemIndex.value].view_time = dplay.video.currentTime
-                if(dplay.video.currentTime - list.value[itemIndex.value].last_view_time > 10 || dplay.video.currentTime >= dplay.video.duration) {
-                    list.value[itemIndex.value].last_view_time = dplay.video.currentTime
-                    SaveVideoProcess(list.value[itemIndex.value], itemIndex.value, dplay.video.currentTime)
-                }
-            });
-
-            
-
-            // 保存原来的 notice
-dplay.notice = function (text, time, opacity) {
-    // 屏蔽快退/快进提示
-    if (text.includes('快进') || text.includes('快退')) {
-        return;
-    }
-};
-updatePlayInfo(itemIndex.value, item)
-
-
-            
-
-
-        } else {
-            router.replace({ path: '/404', query: { msg: response.data.msg ? response.data.msg : '网络连接错误，请刷新重试' } })
+            return
         }
-    })
-        .catch(error => {
 
-            console.log(error)
-        });
+        const d = response.data.data
+
+        // 标题
+        if (d.title) {
+
+            document.title = d.title
+
+            title.value = d.title
+        }
+
+        // 列表
+        if (d.list) {
+
+            list.value = d.list
+        }
+
+        awardType.value = d.award_type
+
+        // 定位视频
+        if (videoId != '') {
+
+            for (let i = 0; i < d.list.length; i++) {
+
+                const item = d.list[i]
+
+                if (item.id == videoId) {
+
+                    itemIndex.value = i
+
+                    break
+                }
+            }
+        }
+
+        // 奖励背景
+        if (awardType.value == 2) {
+
+            regPacketBg.value =
+                'https://vipimg.ai-xbys.com/saas/img/c8591447/46f869ee/1736788632404.png'
+
+        } else if (awardType.value == 3) {
+
+            regPacketBg.value =
+                'https://vipimg.ai-xbys.com/saas/img/c8591447/46f869ee/1736788918168.png'
+        }
+
+        const item = list.value[itemIndex.value]
+
+        // =========================
+        // 初始化播放器
+        // =========================
+
+        dplay = new DPlayer({
+
+            container: document.getElementById('dplayer'),
+
+            theme: "#f00",
+
+            lang: 'zh-cn',
+
+            hotkey: false,
+
+            playbackSpeed: [],
+
+            contextmenu: [],
+
+            video: {
+                url: item.url,
+            },
+        })
+
+        currentPlayTime = item.view_time || 0
+
+        maxAllowedTime = item.view_time || 0
+
+        // =========================
+        // 播放进度更新
+        // =========================
+
+        dplay.on('timeupdate', function () {
+
+            if (!dplay || !dplay.video) {
+                return
+            }
+
+            // 内部 seek 不处理
+            if (internalSeek || isQuick.value) {
+                return
+            }
+
+            const currentTime =
+                dplay.video.currentTime
+
+            currentPlayTime = currentTime
+
+            // 更新允许播放最大值
+            if (currentTime > maxAllowedTime) {
+
+                maxAllowedTime = currentTime
+            }
+        })
+
+        // =========================
+        // 禁止快进
+        // =========================
+
+        dplay.on('seeking', function () {
+
+            if (!dplay || !dplay.video) {
+                return
+            }
+
+            // 内部 seek 不处理
+            if (internalSeek) {
+                return
+            }
+
+            const seekTime =
+                dplay.video.currentTime
+
+            // 允许 5 秒误差
+            if (seekTime > maxAllowedTime + 5) {
+
+                internalSeek = true
+                isQuick.value = true
+
+                dplay.seek(maxAllowedTime)
+
+                showToast('禁止快进操作')
+
+                showDialog({
+                    message: "禁止快进操作",
+                    confirmButtonText : "确定",
+                }).then(() => {
+                    isQuick.value = false
+                     dplay.seek(maxAllowedTime)
+                      showToast(
+        '已为您自动恢复快进前的'
+        + maxAllowedTime
+        + '秒'
+    )
+                });
+
+                setTimeout(() => {
+
+                    internalSeek = false
+
+                }, 300)
+            }
+        })
+
+        // =========================
+        // 播放结束
+        // =========================
+
+        dplay.on('ended', function () {
+
+            // 内部 seek 不处理
+            if (isQuick.value) {
+                return
+            }
+
+            saveProgress(true)
+        })
+
+        // =========================
+        // 定时保存
+        // =========================
+
+        saveTimer = setInterval(() => {
+
+            saveProgress()
+
+        }, 10000)
+
+        // =========================
+        // 页面隐藏保存
+        // =========================
+
+        document.addEventListener(
+            'visibilitychange',
+            handleVisibilityChange
+        )
+
+        // =========================
+        // 页面关闭保存
+        // =========================
+
+        window.addEventListener(
+            'beforeunload',
+            beforeUnloadHandler
+        )
+
+        // =========================
+        // 屏蔽快进提示
+        // =========================
+
+        const originalNotice =
+            dplay.notice.bind(dplay)
+
+        dplay.notice = function (
+            text,
+            time,
+            opacity
+        ) {
+
+            if (
+                text.includes('快进')
+                || text.includes('快退')
+            ) {
+                return
+            }
+
+            return originalNotice(
+                text,
+                time,
+                opacity
+            )
+        }
+
+        // 初始化播放位置
+        updatePlayInfo(
+            itemIndex.value,
+            item
+        )
+
+    }).catch(() => {
+
+        showToast('网络连接错误，请刷新重试')
+    })
 }
 
+// =========================
+// 生命周期
+// =========================
 
-
-
+setToastDefaultOptions({
+    duration: 2000
+})
 
 onMounted(() => {
 
+    const id = route.query.id
 
-    let id = route.query.id
-    if (id && typeof id === 'string') {
+    if (
+        id
+        && typeof id === 'string'
+    ) {
         courseId = id
     }
 
-    let video_id = route.query.video_id
-    if (video_id && typeof video_id === 'string') {
+    const video_id = route.query.video_id
+
+    if (
+        video_id
+        && typeof video_id === 'string'
+    ) {
         videoId = video_id
     }
 
     if (courseId == "") {
-        router.replace({ path: '/404', query: { msg: '活动不存在' } })
+
+        router.replace({
+            path: '/404',
+            query: {
+                msg: '活动不存在'
+            }
+        })
+
         return
     }
-    
-    getVideoList()
 
+    let ctid = route.query.ctid
+    if (ctid && typeof ctid === 'string') {
+        // 在任何页面获取到邀请码时
+        setQrSession(ctid, 'watchVideo', courseId, proxy.$config.appKey);
+
+    }
+
+    getVideoList()
 })
 
 onBeforeUnmount(() => {
 
+    // 保存最后进度
+    saveProgress(true)
+
+    // 清理定时器
+    if (saveTimer) {
+
+        clearInterval(saveTimer)
+
+        saveTimer = null
+    }
+
+    // 清理事件
+    document.removeEventListener(
+        'visibilitychange',
+        handleVisibilityChange
+    )
+
+    window.removeEventListener(
+        'beforeunload',
+        beforeUnloadHandler
+    )
+
+    // 销毁播放器
+    if (dplay) {
+
+        dplay.destroy()
+
+        dplay = null
+    }
 })
+
 </script>
 
 <style lang="scss" scoped>

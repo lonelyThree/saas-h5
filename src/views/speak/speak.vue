@@ -557,7 +557,10 @@ function submitInfo(fileName) {
     });
     let topic = topics.value[topicIndex]
 
-    proxy.$axios.post(proxy.$config.domain + "Activity/SpeakResult", {aid:aid,id:topic.topicId, fileName: fileName }, { hideLoading: true, toJSON: true})
+    let ctid = route.query.ctid || ''
+
+
+    proxy.$axios.post(proxy.$config.domain + "Activity/SpeakResult", {aid:aid,id:topic.topicId, fileName: fileName, ctid: ctid }, { hideLoading: true, toJSON: true})
     .then(response => {
         // showLoading = false;
         if (response.data.code === 200) {

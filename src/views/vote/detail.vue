@@ -85,22 +85,37 @@
 
 
         <div class="fixed-bottom fixed-textarea">
-            <div class="div-bottom" flex="dir:left cross:center">
+            <div class="div-bottom" flex="dir:left cross:center" v-if="voteInfo.vote_type == 1">
                 <div class="vote-btn btn-default" @click.stop="voteIndexClick">
                     <van-icon name="wap-home-o" />
                     <div>首页</div>
                 </div>
-                <div class="vote-btn vote-click" @click.stop="shareClick" v-if="voteUserInfo.vote_op_type == 1" >邀请别人为自己投票</div>
+                <div class="vote-btn vote-click" @click.stop="voteRegClick" v-if="voteUserInfo.vote_op_type == 1 && (voteUserInfo.status == 2 || voteUserInfo.status == 3)" >修改信息</div>
+                <div class="vote-btn vote-click disable"  v-else-if="voteUserInfo.vote_op_type == 1" >修改信息</div>
                 <div class="vote-btn vote-click" @click.stop="voteClick" v-else-if="voteUserInfo.vote_op_type == 2">立即投票</div>
                 <div class="vote-btn vote-click disable" disable  v-else>已投票</div>
-                <div class="vote-btn btn-default" @click.stop="shareClick">
+                <div class="vote-btn btn-default" @click.stop="shareClick" v-if="voteUserInfo.status == 1 && voteUserInfo.name">
                     <van-icon name="share-o" />
                     <div>分享</div>
                 </div>
             </div>
+            <div class="div-bottom" flex="dir:left cross:center" v-else-if="voteUserInfo.vote_op_type == 1 && (voteUserInfo.status == 2 || voteUserInfo.status == 3)">
+                <div class="vote-btn btn-default" @click.stop="voteIndexClick">
+                    <van-icon name="wap-home-o" />
+                    <div>首页</div>
+                </div>
+                <div class="vote-btn vote-click " @click.stop="voteRegClick" v-if="voteUserInfo.vote_op_type == 1 && (voteUserInfo.status == 2 || voteUserInfo.status == 3)" >修改信息</div>
+            </div>
+            <div class="div-bottom" flex="dir:left cross:center" v-else>
+
+                <div class="vote-btn vote-click "  @click="voteIndexClick">首页</div>
+            </div>
 
         </div>
 
+        <van-overlay :show="showGuide" @click="showGuide = false">
+      <img class="guide-img" src="../../assets/img/guide.png">
+</van-overlay>
 
     </div>
 
@@ -110,11 +125,11 @@
 <script lang="ts" setup>
 
 import { onMounted, onBeforeUnmount, ref, getCurrentInstance } from "vue"
-import { uploadToOSS } from '../../js/utils/ossUpload'
 
 
 import { useRouter } from 'vue-router'
 import { showToast, setToastDefaultOptions } from "vant";
+import { initWechatShare, setShareConfig } from '../../js/wechatShare';
 
 const { currentRoute } = useRouter();
 const route = currentRoute.value;
@@ -161,11 +176,22 @@ const voteUserInfo = ref({
     avatar: '',
 })
 
+
+const showGuide = ref(false)
+const isInitShare = ref(false)
+
+
 setToastDefaultOptions({ duration: 3000 });
 
 
-function shareClick() {
-    showToast('暂不支持分享');
+
+function voteRegClick() {
+    router.replace({
+        name: 'VoteReg', query: {
+            id: voteId.value,
+            type: 1,
+        }
+    })
 }
 
 function voteClick() {
@@ -231,6 +257,42 @@ onMounted(() => {
 
 
 })
+
+function shareClick() {
+    try {
+        const isWeixin = /micromessenger/i.test(navigator.userAgent);
+        // 非微信：直接走兜底
+        if (!isWeixin || isInitShare.value) {
+          showGuide.value = true;
+          return;
+        }
+        initWechatShare(proxy, window.location.href.split('#')[0]);
+
+        let href = window.location.href
+        if (href.indexOf('user_token=') > -1) {
+          href = href.replace(/user_token=[^&]*/g, '')
+        }
+        
+//   console.log( })
+
+        setShareConfig({
+          title: voteUserInfo.value.name,
+          desc: voteUserInfo.value.info,
+          link:  href,
+          imgUrl: voteUserInfo.value.imgList[0],
+          success: () => {
+            showGuide.value = true;
+          },
+          fail: (err) => {
+            showGuide.value = true;
+          }
+        });
+        isInitShare.value = true;
+      } catch (error) {
+        showGuide.value = true;
+        isInitShare.value = true;
+      }
+}
 
 
 onBeforeUnmount(() => {

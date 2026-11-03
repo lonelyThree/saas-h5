@@ -61,6 +61,7 @@ import { onMounted, onBeforeUnmount, ref, getCurrentInstance } from "vue"
 import { showDialog } from "vant";
 
 import { useRouter } from 'vue-router'
+import { getQrSession } from '@/js/utils/qrSession';
 
 const { currentRoute } = useRouter();
 const route = currentRoute.value;
@@ -192,9 +193,15 @@ function answerClick(item) {
 
 function getActivity() {
     // console.log("proxy", process)
+     let ctid = getQrSession({
+    bindType: 'ask', 
+    activityId: aid, 
+    appKey: proxy.$config.appKey
+})?.inviteCode || ''
     console.log("domain", proxy.$config.domain)
     proxy.$axios.post(proxy.$config.domain + 'Activity/AskInfo', {
-        id:aid
+        id:aid,
+        ctid: ctid
     }).then(response => {
         console.log(response)
         if (response.data.code === 200) {
