@@ -477,7 +477,7 @@ function getActivity(adcode) {
             // if(d.is_upload) {
             //     resetInterValObj()
             // }
-            var end = new Date(d.end_time).getTime();
+            var end = new Date(d.vote_end_time).getTime();
             var start = new Date().getTime();
             time.value = (end - start)
             if (info.value?.number_type == 1) {

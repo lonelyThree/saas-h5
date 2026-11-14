@@ -1,10 +1,12 @@
 <template>
     <div class="main-content ">
-        <div class="result-bg" v-if="result.status == 4 || result.status == 5">
+        <!-- 达标待领取 / 已领取终态 -->
+        <div class="result-bg" v-if="result.status == WatchVideoStatus.Award || result.status == WatchVideoStatus.Awarded">
             <div class="topic-bg" flex="dir:left cross:center">
                 <div class="topic-num">
                     <div>很不错哦！</div>
-                    <span>恭喜您将获得本次活动奖励</span>
+                    <span v-if="result.status == WatchVideoStatus.Award">恭喜您将获得本次活动奖励</span>
+                    <span v-else>奖励已领取{{ result.awardTimes > 1 ? '，已达参与上限' : '' }}</span>
                 </div>
                 <img src="../../assets/img/award-img.png" />
             </div>
@@ -15,6 +17,8 @@
                     <div class="answer-num">
                         答对<div><span>{{ result.correctNum }}</span>/{{ result.cnt }}</div>题
                     </div>
+                    <div class="round-tip" v-if="result.awardTimes > 1">已完成 {{ result.awardCnt }}/{{ result.awardTimes }} 轮 · 剩余 {{ result.awardTimes - result.awardCnt }} 次</div>
+                    <div class="total-tip" v-if="result.awardTimes > 1 && result.totalReceived > 0">累计已领<span v-if="result.award_type == 3"> {{ result.totalReceived / 100 }} 星币</span><span v-else-if="result.award_type == 2"> {{ result.totalReceived }} 积分</span><span v-else> ￥{{ result.totalReceived / 100 }}</span></div>
                     <img v-if="result.award_type == 2 || result.award_type == 3"
                         src="../../assets/img/credit-big-img.png">
                     <img v-else src="../../assets/img/red-big-img.png">
@@ -23,16 +27,60 @@
                     <div class="money-div " v-else-if="result.award_type == 2"><span>＋{{ result.money }}</span></div>
                     <div class="money-div " v-else>￥<span>{{ result.money / 100 }}</span></div>
                     <div class="award-btn " @click="receiveClick"
-                        v-if="result.status == 4 && (result.award_type == 2 || result.award_type == 3)">点击领取</div>
+                        v-if="result.status == WatchVideoStatus.Award && (result.award_type == 2 || result.award_type == 3)">{{ receiving ? '领取中…' : '点击领取' }}</div>
 
-                    <div class="award-btn " @click="receiveClick" v-else-if="result.status == 4">点击提现</div>
+                    <div class="award-btn " @click="receiveClick" v-else-if="result.status == WatchVideoStatus.Award">{{ receiving ? '领取中…' : '点击提现' }}</div>
 
-                    <div class="award-btn " v-else-if="result.award_type == 2 || result.award_type == 3">已领取</div>
-                    <div class="award-btn " v-else>已提现</div>
+                    <div class="award-btn gray" v-else-if="result.award_type == 2 || result.award_type == 3">已领取</div>
+                    <div class="award-btn gray" v-else>已提现</div>
                 </div>
 
             </div>
         </div>
+        <!-- 本轮已领取，可继续下一轮 -->
+        <div class="result-bg" v-else-if="result.status == WatchVideoStatus.Continue && result.is_award == WatchVideoIsAward.ReceivedContinue">
+            <div class="topic-bg" flex="dir:left cross:center">
+                <div class="topic-num">
+                    <div>本轮奖励已领取！</div>
+                    <span>可继续参与下一轮答题</span>
+                </div>
+                <img src="../../assets/img/award-img.png" />
+            </div>
+            <div class="content">
+
+                <div class="border-bg">
+                    <div class="answer-num">
+                        答对<div><span>{{ result.correctNum }}</span>/{{ result.cnt }}</div>题
+                    </div>
+                    <div class="round-tip" v-if="result.awardTimes > 1">已完成 {{ result.awardCnt }}/{{ result.awardTimes }} 轮 · 剩余 {{ result.awardTimes - result.awardCnt }} 次</div>
+                    <div class="total-tip" v-if="result.totalReceived > 0">累计已领<span v-if="result.award_type == 3"> {{ result.totalReceived / 100 }} 星币</span><span v-else-if="result.award_type == 2"> {{ result.totalReceived }} 积分</span><span v-else> ￥{{ result.totalReceived / 100 }}</span></div>
+                    <div class="award-btn " @click="nextRound">继续参与下一轮</div>
+                </div>
+
+            </div>
+        </div>
+        <!-- 已达参与次数上限 -->
+        <div class="result-bg" v-else-if="result.status == WatchVideoStatus.Limit">
+            <div class="topic-bg" flex="dir:left cross:center">
+                <div class="topic-num">
+                    <div>很遗憾</div>
+                    <span>已达到参与次数上限</span>
+                </div>
+                <img src="../../assets/img/award-no-img.png" />
+            </div>
+            <div class="content">
+
+                <div class="border-bg">
+                    <div class="answer-num">
+                        答对<div><span>{{ result.correctNum }}</span>/{{ result.cnt }}</div>题
+                    </div>
+                    <div class="tip-div">本次活动参与次数已用完，敬请期待下次活动</div>
+                    <div class="award-btn gray" @click="goIndex">我知道了</div>
+                </div>
+
+            </div>
+        </div>
+        <!-- 未达标，可重新答题 -->
         <div class="result-bg" v-else-if="result.status != 0">
 
             <div class="topic-bg" flex="dir:left cross:center">
@@ -68,6 +116,8 @@ import { showDialog, showToast } from "vant";
 
 import { useRouter } from 'vue-router'
 
+import { WatchVideoStatus, WatchVideoIsAward } from '@/constants/WatchVideoStatus'
+
 const { currentRoute } = useRouter();
 const route = currentRoute.value;
 const router = useRouter()
@@ -85,8 +135,14 @@ const result = ref({
     standardNum: 3,
     status: 0,
     title: "测试看视频",
+    is_award: 0,
+    awardCnt: 0,
+    awardTimes: 1,
+    totalReceived: 0,
 })
 
+// 领取防重锁，避免快速多次点击“点击领取”重复发奖
+const receiving = ref(false)
 
 let aid = ""
 
@@ -98,28 +154,45 @@ function reAnswer() {
     }
 }
 
+// 本轮已领取、可开启下一轮：直接进入答题（视频已看过，InitUser 已幂等完成）
+function nextRound() {
+    router.replace({ name: 'VideoAnswer', query: { id: aid, type: route.query.type } })
+}
+
+function goIndex() {
+    router.replace({ name: 'VideoIndex' })
+}
+
 function receiveClick() {
+    if (receiving.value) {
+        return
+    }
+    receiving.value = true
 
     proxy.$axios.post(proxy.$config.domain + "Activity/WatchVideoAward", { id: aid }).then(response => {
-        // showLoading = false;
         if (response.data.code === 200) {
 
             let d = response.data.data
+            // 后端成功文案已区分终态/可继续，直接透传
             showToast(d ? d : '领取成功，预计1分钟到账')
+
+            // 本地先行置为“本轮已领取”态，避免回包间隙重复点击，再延迟拉取真实状态
+            result.value.status = WatchVideoStatus.Continue
+            result.value.is_award = WatchVideoIsAward.ReceivedContinue
 
             setTimeout(() => {
                 getActivity()
-
+                receiving.value = false
             }, 1500);
 
-
-
         } else {
+            // 失败 msg 透传后端，不再统一提示“提现失败”
             showToast(response.data.msg ? response.data.msg : '领取失败');
-            // self.prevent = false;
+            receiving.value = false
         }
     }).catch(error => {
-        showToast("提现失败！");
+        showToast('网络连接错误，请刷新重试');
+        receiving.value = false
     });
 
 }
@@ -137,7 +210,8 @@ function getActivity() {
             //     router.replace({ name: 'VideoResult', query: { id: aid, type: route.query.type } })
             //     return
             // }
-            if (d.status == 3) {
+            if (d.status == WatchVideoStatus.Error) {
+                // 未 InitUser/未答题直接进 Result，回视频页
                 router.replace({ name: 'VideoVideo', query: { id: aid, type: route.query.type } })
                 return
             }
@@ -282,6 +356,10 @@ onMounted(() => {
                 margin-bottom: 1rem;
             }
 
+            .award-btn.gray {
+                background: #b8b8b8;
+            }
+
             .money-div {
                 font-size: 1rem;
                 font-weight: 500;
@@ -300,6 +378,20 @@ onMounted(() => {
                 text-align: center;
                 font-size: 0.53rem;
                 font-weight: normal;
+                color: #FE8E09;
+            }
+
+            .round-tip {
+                margin-top: 0.3rem;
+                text-align: center;
+                font-size: 0.43rem;
+                color: #12CB7B;
+            }
+
+            .total-tip {
+                margin-top: 0.2rem;
+                text-align: center;
+                font-size: 0.43rem;
                 color: #FE8E09;
             }
         }

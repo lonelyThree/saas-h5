@@ -4,12 +4,12 @@ export default {
 
 
 
-        // domain: 'http://localhost:8888/',//'http://im2.ai-xbys.com', //'http://localhost:8888',
+        domain: 'http://localhost:8888/',//'http://im2.ai-xbys.com', //'http://localhost:8888',
         im: 'ws://im2.ai-xbys.com', //'ws://localhost:8888', //im
 
       
 
-         domain: 'https://rmkapi.ai-xbys.com/', //'http://localhost:8888',
+         // domain: 'https://rmkapi.ai-xbys.com/', //'http://localhost:8888',
         // im: 'wss://im2.ai-xbys.com', //'ws://localhost:8888', //im
 
 

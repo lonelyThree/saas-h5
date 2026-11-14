@@ -175,7 +175,9 @@
 
         <div class="submit-btn" @click="submitInfo"> 保存</div>
 
-
+         <van-popup v-model:show="showNoStartPop" class="red-packet-pop" :close-on-click-overlay="false">
+            <img :src="noStartImg" />
+        </van-popup>
     </div>
 
 </template>
@@ -188,8 +190,9 @@ import { uploadToOSS } from '../../js/utils/ossUpload'
 
 
 import { useRouter } from 'vue-router'
-import { showToast, setToastDefaultOptions } from "vant";
+import { showToast, setToastDefaultOptions, showDialog } from "vant";
 import { setQrSession, getQrSession } from '@/js/utils/qrSession';
+import { activityInfoStatus } from '@/constants/ActivityInfoStatus'
 
 const { currentRoute } = useRouter();
 const route = currentRoute.value;
@@ -226,6 +229,9 @@ const voteInfo = ref({
     info: '',
     imgs: [],
 })
+
+const showNoStartPop=ref(false)
+const noStartImg = ref('')
 
 setToastDefaultOptions({ duration: 3000 });
 
@@ -500,6 +506,56 @@ function getRegInfo() {
         if (response.data.code === 200) {
             if (response.data.data.vote_user_id) {
                 router.replace({ name: 'VoteDetail', query: { vote_id: aid.value, id : response.data.data.vote_user_id } })
+            }
+            const d = response.data.data.vote_info
+
+             if (d.status == activityInfoStatus.ActivityInfoStatusMobile) {
+                let dialogMessage = '注册认证成功后才能参加活动哦'
+                let dialogConfirmButtonText = '去注册认证'
+                if (d.auth_type != 1) {
+                    dialogMessage = '注册后才能参加活动哦'
+                    dialogConfirmButtonText = '去注册'
+
+                }
+                showDialog({
+                    message: dialogMessage,
+                    confirmButtonText: dialogConfirmButtonText,
+                }).then(() => {
+                    router.replace({ name: 'UserReg', query: { id: aid.value , page: 'VoteReg', 
+                        auth_type: d.auth_type } })
+                });
+
+                return
+            } else if (d.status == activityInfoStatus.ActivityInfoStatusAuth) {
+                showDialog({
+                    message: '认证成功后才能参加活动哦',
+                    confirmButtonText: '去个人中心',
+                }).then(() => {
+                    router.replace({ name: 'UserMine', query: { id: aid.value , page: 'VoteReg' } })
+                });
+
+                return
+            } else if (d.status == activityInfoStatus.ActivityInfoStatusLimitAuth) {
+                showDialog({
+                    message: d.tip_img,
+                    showConfirmButton: false,
+                })
+
+                return
+            } else if (d.status == activityInfoStatus.ActivityInfoStatusLimitChain) {
+                showDialog({
+                    message: '仅限指定连锁参加，你暂未获得活动参与权限！',
+                    confirmButtonText: '去学习中心',
+                }).then(() => {
+                    router.replace({ name: 'VoteVote', query: { id: aid.value } })
+                });
+
+                return
+            }   else if (d.status == 3 || d.status == 5 || d.status == 6) {
+                showNoStartPop.value = true
+                noStartImg.value = d.tip_img
+                return
+            } else {
             }
 
 

@@ -338,25 +338,17 @@ function answerActivity(answer, duration) {
 
             // }, 1000)
         } else {
-            showDialog({
-                message: '网络连接错误，请刷新重试',
-            }).then(() => {
-                 router.replace({ name: 'VideoVideo', query: { id: aid, type: route.query.type } })
-             });
-            // showEmpty.value = true
-            // tipMessage.value = response.data.message ?response.data.message:'获取问题失败，请重试'
-            // this.$toast(response.data.message)
+            // P3：网络/后端错误不再直接踢回 VideoVideo 丢失已答进度，
+            // 改为 Toast 提示 + 调 getActivity 从当前题号续答（后端为权威进度）
+            showToast(response.data.msg ? response.data.msg : '网络连接错误，正在恢复…');
+            lockClick = false
+            getActivity()
         }
     })
         .catch(error => {
-            // tipMessage.value = "获取问题失败，请重试"
-            // console.log(error)
-            showDialog({
-                message: '网络连接错误，请刷新重试',
-            }).then(() => {
-                router.replace({ name: 'VideoVideo', query: { id: aid, type: route.query.type } })
-                // on close
-             });
+            showToast('网络连接错误，正在恢复…');
+            lockClick = false
+            getActivity()
         });
 }
 

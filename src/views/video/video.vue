@@ -60,6 +60,7 @@ import { showToast, setToastDefaultOptions, showLoadingToast, closeToast, showDi
 
 import DPlayer from 'dplayer';
 import { activityInfoStatus } from '@/constants/ActivityInfoStatus'
+import { WatchVideoIsAward } from '@/constants/WatchVideoStatus'
 import { setQrSession, getQrSession } from '@/js/utils/qrSession';
 
 
@@ -214,6 +215,31 @@ function getActivity(adcode) {
             }
 
             info.value = d
+
+            // 入口分流（方案B）：仅在活动可正常参与时，依据后端 is_award 决定去向，
+            // 避免重复看视频，也避免“本轮已领取/终态”误落到看视频或 Result 未达标分支
+            if (d.status == activityInfoStatus.ActivityInfoStatusNormal) {
+                // 待领取(1) / 已领取终态(3) / 本轮已领取可继续(5) → 交给 Result 页多态渲染
+                if (d.is_award == WatchVideoIsAward.Win
+                    || d.is_award == WatchVideoIsAward.Received
+                    || d.is_award == WatchVideoIsAward.ReceivedContinue) {
+                    router.replace({ name: 'VideoResult', query: { id: aid, type: route.query.type } })
+                    return
+                }
+                // 未达标/初始(2)：说明已 InitUser 看过视频
+                if (d.is_award == WatchVideoIsAward.None) {
+                    if (d.logNum > 0 && d.logCnt > 0 && d.logNum < d.logCnt) {
+                        // 答题进行中（有未完成 Log）→ 跳过视频，直连续答
+                        jumpAnswer()
+                        return
+                    }
+                    // 已 InitUser 但无未完成进度 → 跳过视频，直接显示“开始答题”
+                    down.value = 0
+                    showType.value = 3
+                    return
+                }
+                // is_award==0 未参与 → 保持正常看视频流程
+            }
 
             down.value = d.wait_times
 
