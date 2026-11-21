@@ -314,6 +314,15 @@ function getActivity() {
                 });
 
                 return
+            } else if (d.auth_status == activityInfoStatus.ActivityInfoStatusNeedInfo) {
+                showDialog({
+                    message: '请完善注册信息',
+                    confirmButtonText: '去完善',
+                }).then(() => {
+                    router.replace({ name: 'UserReg', query: { id: aid.value, page: 'CourseAnswer', type: '', auth_type: d.auth_type } })
+                });
+
+                return
             } else if (d.auth_status == activityInfoStatus.ActivityInfoStatusLimitAuth) {
                 showDialog({
                     message: d.tip_img,

@@ -8,5 +8,6 @@ export const activityInfoStatus = {
   ActivityInfoStatusLimitChain: 7,   // 指定连锁
   ActivityInfoStatusAuth: 8,         // 需要认证
   ActivityInfoStatusLimitAuth: 9,    // 渠道隐藏未认证
-  ActivityInfoStatusDayEnd: 10        // 活动结束
+  ActivityInfoStatusDayEnd: 10,       // 活动结束
+  ActivityInfoStatusNeedInfo: 11      // 已验证手机号但未完善注册信息
 } as const;

@@ -633,7 +633,16 @@ function getActivity(adcode) {
                     message: '认证成功后才能参加活动哦',
                     confirmButtonText: '去个人中心',
                 }).then(() => {
-                    router.replace({ name: 'UserMine', query: { id: aid, page: 'CourseCourse', type:  route.query.type } })
+                    router.replace({ name: 'UserMine', query: { id: aid, page: 'SpeakSpeak', type:  route.query.type } })
+                });
+
+                return
+            } else if (d.status == activityInfoStatus.ActivityInfoStatusNeedInfo) {
+                showDialog({
+                    message: '请完善注册信息',
+                    confirmButtonText: '去完善',
+                }).then(() => {
+                    router.replace({ name: 'UserReg', query: { id: aid, page: 'SpeakSpeak', type: route.query.type, auth_type: d.auth_type } })
                 });
 
                 return
