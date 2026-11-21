@@ -241,6 +241,7 @@ const aType = ref("")
 const skipAuth = ref(false)
 const uid = ref("")
 const authType = ref(1)
+const skipInfo = ref(false)
 
 const isReg = ref(true)
 
@@ -687,6 +688,11 @@ function submitInfo() {
                 return
             }
 
+            if (skipInfo.value && (d.display_type == 3 || d.display_type == 4)) {
+                goBack()
+                return
+            }
+
             if (d.display_type == 3 && skipAuth.value) { 
                 regInfo.value.display_type = 4
             } else {
@@ -724,7 +730,7 @@ function goBack() {
 }
 
 function goAuth() {
-    if (authType.value == 2) {
+    if (authType.value == 2 || authType.value == 3 || authType.value == 4) {
         goBack()
         return
     }
@@ -1058,6 +1064,9 @@ onMounted(() => {
     let auth_type = route.query.auth_type
     if (auth_type == '2' ) {
         authType.value = 2
+    } else if (auth_type == '3' || auth_type == '4') {
+        authType.value = Number(auth_type)
+        skipInfo.value = true
     }
 
     let page = route.query.page
