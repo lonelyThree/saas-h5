@@ -41,9 +41,10 @@
                         <div class="answer-bg-div" v-for="(item, index) in askList" :key="index" :class="item.cla" @click="answerClick(item)">
                             <img :src="require('../../assets/img/icon-err.png')" v-if="item.cla == 'error'"/>
 
-                            <img src="../../assets/img/icon-suc.png" v-if="item.cla == 'success'"/>
+                            <img src="../../assets/img/icon-suc.png" v-if="item.cla == 'success' || item.cla == 'correct'"/>
                             {{ item.answer }}
                         </div>
+                        <div class="submit-multi-btn" v-if="questionType == 2 && showDownIndex == 1 && !lockClick" @click="submitMultiAnswer">确认提交</div>
                     </div>
                 </div>
 
@@ -58,7 +59,7 @@
 
 import { onMounted, onBeforeUnmount, ref, getCurrentInstance } from "vue"
 
-import { showDialog } from "vant";
+import { showDialog, showToast } from "vant";
 
 import { useRouter } from 'vue-router'
 import { getQrSession } from '@/js/utils/qrSession';
@@ -92,6 +93,8 @@ let downTimeout = 30
 const askList = ref(
     []
 );
+const questionType = ref(1)
+const selected = ref([])
 
 let aid = ""
 
@@ -161,7 +164,7 @@ function SetRemainTime() {
 
         // setTimeout(() => {
         lockClick = true
-        answerActivity('', downTimeout)
+        answerActivity(questionType.value == 2 ? selected.value.slice().sort().join(',') : '', downTimeout)
         // }, 2000);
         //  getActivity()
     }
@@ -172,9 +175,22 @@ function answerClick(item) {
     if(lockClick) {
         return
     }
+
+    if (questionType.value == 2) {
+        const idx = selected.value.indexOf(item.index)
+        if (idx > -1) {
+            selected.value.splice(idx, 1)
+            item.cla = ''
+        } else {
+            selected.value.push(item.index)
+            item.cla = 'sel'
+        }
+        return
+    }
+
     lockClick = true
     item.cla = "sel"
-    
+
     window.clearInterval(InterValObj);
     InterValObj = 0
     showDownIndex.value = 2
@@ -189,6 +205,22 @@ function answerClick(item) {
 //     setTimeout(() => {
 //         getActivity()
 //     }, 2000);
+}
+
+function submitMultiAnswer() {
+    if (lockClick || questionType.value != 2) {
+        return
+    }
+    if (!selected.value.length) {
+        showToast('请至少选择一个答案')
+        return
+    }
+    lockClick = true
+    window.clearInterval(InterValObj);
+    InterValObj = 0
+    showDownIndex.value = 2
+
+    answerActivity(selected.value.slice().sort().join(','), downTimeout - down.value)
 }
 
 function getActivity() {
@@ -223,8 +255,10 @@ function getActivity() {
 
             askSum.value = d.dayCnt
 
+            questionType.value = d.type || 1
+            selected.value = []
             askList.value = d.answers
-            
+
             downTimeout = d.timeout
             showDownIndex.value = 11
 
@@ -276,11 +310,12 @@ function answerActivity(answer, duration) {
             showEmpty.value = false
             const d = response.data.data
 
+            const correctSet = String(d.result.correct || '').split(',').map(s => s.trim()).filter(Boolean)
             for (let index = 0; index < askList.value.length; index++) {
                 let el = askList.value[index]
-                if(el.index == d.result.correct) {
-                    el.cla = (el.cla == 'sel'?'success':'correct')
-                } else if(el.cla == 'sel') {
+                if (correctSet.indexOf(el.index) > -1) {
+                    el.cla = (el.cla == 'sel' ? 'success' : 'correct')
+                } else if (el.cla == 'sel') {
                     el.cla = 'error'
                 }
                 
@@ -303,6 +338,8 @@ function answerActivity(answer, duration) {
 
                 askNum = d.askNum
 
+                questionType.value = d.type || 1
+                selected.value = []
                 askList.value = d.answers
                 lockClick = false
 
@@ -525,6 +562,17 @@ onBeforeUnmount(() => {
             .answer-bg-div.sel {
                 background: url(../../assets/img/answer-sel.png);
                 background-size: 100% 100%;
+            }
+
+            .submit-multi-btn {
+                margin: 0.43rem 0.9rem 0;
+                background: url(../../assets/img/btn-bg.png);
+                background-size: 100% 100%;
+                text-align: center;
+                padding: 0.41rem 0.9rem;
+                font-size: 0.43rem;
+                font-weight: 500;
+                color: #fff;
             }
 
             word-wrap: break-word;
